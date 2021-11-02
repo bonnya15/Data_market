@@ -1,23 +1,23 @@
+import numpy as np
+import pandas as pd
+
+
 class Online_SGD:
     import warnings
     warnings.filterwarnings("ignore")
-    import numpy as np
-    import pandas as pd
 
-    def __init__(self, learning_rate=0.2, n_epochs=100, k=40, damp_factor=1.02, tol=1e-2, w_file="w.txt",
-                 b_file="b.txt"):
+
+    def __init__(self,  weight, bias, learning_rate=0.2,damp_factor=1.02):
         self.learning_rate = learning_rate
-        self.n_epochs = n_epochs
-        self.k = k
         self.damp_factor = damp_factor
-        self.tol = tol
-        self.w_file = w_file
-        self.b_file = b_file
+        self.w = weight
+        self.b = bias
 
     def fit_online(self, X, Y):
 
-        self.w = np.loadtxt(self.w_file).reshape(1, X.shape[1])  # Reading weights and bias
-        self.b = np.loadtxt(self.b_file).reshape(1, 1)
+        # self.w = np.loadtxt(self.w_file).reshape(1, X.shape[1])  # Reading weights and bias
+        # self.b = np.loadtxt(self.b_file).reshape(1, 1)
+
 
         for i in range(X.shape[0]):
             x = (np.array(X))[i].reshape(1, X.shape[1])
@@ -28,14 +28,14 @@ class Online_SGD:
             self.b = self.b + self.learning_rate * Lb
             self.learning_rate = self.learning_rate / self.damp_factor
 
-        a_file = open(self.w_file, "w")
-        for row in self.w:
-            np.savetxt(a_file, row)
-        a_file.close()
-        b_file = open(self.b_file, "w")
-        for row in self.b:
-            np.savetxt(b_file, row)
-        b_file.close()
+        # a_file = open(self.w_file, "w")
+        # for row in self.w:
+        #     np.savetxt(a_file, row)
+        # a_file.close()
+        # b_file = open(self.b_file, "w")
+        # for row in self.b:
+        #     np.savetxt(b_file, row)
+        # b_file.close()
 
         return self.w, self.b
 
@@ -45,20 +45,20 @@ class Online_SGD:
         reg.fit(X, Y)
         self.w = reg.coef_.reshape(1, X.shape[1])
         self.b = reg.intercept_.reshape(1, 1)
-        a_file = open(self.w_file, "w")
-        for row in self.w:
-            np.savetxt(a_file, row)
-        a_file.close()
-        b_file = open(self.b_file, "w")
-        for row in self.b:
-            np.savetxt(b_file, row)
-        b_file.close()
+        # a_file = open(self.w_file, "w")
+        # for row in self.w:
+        #     np.savetxt(a_file, row)
+        # a_file.close()
+        # b_file = open(self.b_file, "w")
+        # for row in self.b:
+        #     np.savetxt(b_file, row)
+        # b_file.close()
 
         return self.w, self.b
 
     def predict(self, X):
-        self.w = np.loadtxt(self.w_file).reshape(1, X.shape[1])  # Reading weights and bias
-        self.b = np.loadtxt(self.b_file).reshape(1, 1)
+        # self.w = np.loadtxt(self.w_file).reshape(1, X.shape[1])  # Reading weights and bias
+        # self.b = np.loadtxt(self.b_file).reshape(1, 1)
         m = np.dot(X, self.w.T) + self.b
         n = m.reshape(-1, )
 
