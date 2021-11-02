@@ -25,6 +25,8 @@ from Online_SGD import *
 # 7. PAYMENT DIVISION - PAPER'S ALGORITHM 1
 # ---------------------------------------------------------------------------#
 
+## Incorporating online SGD
+
 
 # 1. INITIALIZATION
 

@@ -7,6 +7,8 @@
 # energy forecasting", IEEE Transactions on Sustainable Energy, 
 # vol. 12, no. 1, pp. 533-542, Jan. 2021.
 
+## Incorporating online SGD
+
 from synthetic_main_sim import *
 import numpy as np
 from sklearn.linear_model import LinearRegression

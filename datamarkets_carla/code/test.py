@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import SGDRegressor
 import pandas as pd
 from Online_SGD import *
+## Incorporating online SGD
 
 
 

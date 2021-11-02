@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+## Incorporating online SGD
 
 
 class Online_SGD:
