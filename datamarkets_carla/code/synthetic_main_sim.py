@@ -80,8 +80,7 @@ def model(X, Y, weight, bias): # model function (train and evaluate the correspo
     y_market = model_market.predict(Xtest.values)
     g_market = np.sqrt(np.mean((Ytest.values - y_market)**2))
     g = (g_own-g_market)/(np.max(Y)-np.min(Y)) # gain
-    print(w1,b1)
-    print(w2,b2)
+
     return (max(0,g.mean())*100) 
 
 # 4. DATA ALLOCATION - PAPER'S EQUATION (18)
