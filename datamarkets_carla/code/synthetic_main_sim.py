@@ -8,8 +8,10 @@
 
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import SGDRegressor
 import pandas as pd
 #import multiprocessing
+from Online_SGD import *
 
 # ---------------------------------------------------------------------------#
 # ----------------------------- SCRIPT CONTENTS -----------------------------#
@@ -48,7 +50,7 @@ def RMSE(Y, Yh):
 
 # 3. MODEL USED TO PREDICT BUYER'S DATA
 
-def model(X, Y): # model function (train and evaluate the corresponding gain) 
+def model(X, Y, weight, bias): # model function (train and evaluate the corresponding gain) 
     # X: covariates
     # Y: target
     X = pd.DataFrame(X)
@@ -64,15 +66,23 @@ def model(X, Y): # model function (train and evaluate the corresponding gain)
     Ytrain = Y.iloc[0:(X.shape[0]-hours_-1), :]
     Ytest = Y.iloc[(X.shape[0]-hours_):, :]
     # train models
-    model_own = LinearRegression(fit_intercept=True).fit(Xown_train.values, Ytrain.values)
-    model_market = LinearRegression(fit_intercept=True).fit(Xtrain.values, Ytrain.values)
+    #model_own = LinearRegression(fit_intercept=True).fit(Xown_train.values, Ytrain.values)
+    #model_market = LinearRegression(fit_intercept=True).fit(Xtrain.values, Ytrain.values)
+
+    model_own = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
+    w1,b1 = model_own.fit_regression(Xown_train.values, Ytrain.values)
+    model_market = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
+    w2,b2 = model_market.fit_regression(Xtrain.values, Ytrain.values)
+
     # compute the rmse for both models
     y_own =  model_own.predict(Xown_test.values.reshape((hours_,1)))
     g_own = np.sqrt(np.mean((Ytest.values - y_own)**2))
     y_market = model_market.predict(Xtest.values)
     g_market = np.sqrt(np.mean((Ytest.values - y_market)**2))
     g = (g_own-g_market)/(np.max(Y)-np.min(Y)) # gain
-    return max(0,g.mean())*100 
+    print(w1,b1)
+    print(w2,b2)
+    return (max(0,g.mean())*100) 
 
 # 4. DATA ALLOCATION - PAPER'S EQUATION (18)
 

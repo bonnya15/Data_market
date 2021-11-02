@@ -10,7 +10,9 @@
 from synthetic_main_sim import *
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import SGDRegressor
 import pandas as pd
+from Online_SGD import *
 
 # ---------------------------------------------------------------------------#
 # ----------------------------- SCRIPT CONTENTS -----------------------------#
@@ -68,6 +70,18 @@ for i, k in enumerate(buyers_):
 # #######################################
 # B. DATA MARKET SIMULATION 
 # #######################################
+
+wb_market = pd.DataFrame()
+wb_own = pd.DataFrame()
+
+wb_market['Buyers'] = buyers_
+wb_own['Own'] = buyers_
+wb_market['w'] = [[np.zeros(len(buyers_,))] for x in range(len(buyers_))]
+wb_own['w'] = [[np.zeros(1,)] for x in range(len(buyers_))]
+wb_market['b'] = [[np.zeros(1,)] for x in range(len(buyers_))]
+wb_own['b'] = [[np.zeros(1,)] for x in range(len(buyers_))]
+
+
 results = np.zeros((ndays, M+5, N))  # it will save relevant results
 
 for day in np.arange(0,ndays): # cycle to simulate the sliding window
@@ -82,18 +96,28 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         else:
             # NEW - define the price as the mean value of the distribution:
             p = sum(probs*possible_p) 
-            p = (p//epsilon+1)*(epsilon) # market's price = expected value
+            p = (p//epsilon+1)*(epsilon) # market's price = expected value  (Problem)
             # OLD - The paper considers the price by random generation: 
             # U = np.random.uniform(0, 1)
             # p = possible_p[np.max(np.where(U<=(np.cumsum(probs)))[0][0])]
         print('1 - Market set price:', p)
     
         # 2nd step: Buyer i arrives
-        print('2 - Buyer', n+1, 'arrives')
+        print('2 - Buyer', n+1, 'arrives','in day' , day)
         b = buyers[n].b # bid         
         # available features for this specific buyer
-        X = buyers[n].X.iloc[(day*steps_t):(window_size+day*steps_t), :] 
-        Y = buyers[n].Y[(day*steps_t):(window_size+day*steps_t)]
+         ## X = buyers[n].X.iloc[(day*steps_t):(window_size+day*steps_t), :] 
+         ## Y = buyers[n].Y[(day*steps_t):(window_size+day*steps_t)]
+        
+        if day == 0:
+            
+             X = buyers[n].X.iloc[0:(window_size+day*steps_t), :] 
+             Y = buyers[n].Y[0 :(window_size+day*steps_t)]
+        else:
+            X = buyers[n].X.iloc[(window_size+day*steps_t): (window_size+day*steps_t+1),:]
+            Y = buyers[n].Y[(window_size+day*steps_t): (window_size+day*steps_t+1)]
+            
+            
         
         # 3rd step: Buyer i bids b
         # b = f(...) in this case the same bid is assumed for all buyers
@@ -109,9 +133,11 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
                 
         # update price weights  
         probs, w = price_update(b, Y, X, Bmin,Bmax, epsilon, delta, N, w)
+        print('probs',probs,'w',w)
         
         # 5th step: Buyer n computes the gain
         g = model(Xalloc.values, Y)
+        print('g',g)
         
         print('5 - Buyer', n+1, 'had a RMSE gain of', g)
         # 6th step: revenue computation
@@ -128,14 +154,46 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
             del r_division
             
         # 8th step: compute the effective gain when predicting 1h-ahead
-        model_market = LinearRegression(fit_intercept=True).fit(Xalloc[0:(X.shape[0])], Y[0:(X.shape[0])])
-        y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1))+max(0,p-b)*noise[1,:]) 
-        y_real = buyers[n].Y[(window_size+day*steps_t)]
-        g_market =  RMSE(y_real, y_market)
         
-        model_own = LinearRegression(fit_intercept=True).fit(Xalloc.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])
-        y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])
-        g_own =  RMSE(y_real, y_own)
+        if day == 0 :
+            
+            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            wb_market['w'][n] , wb_market['b'][n] = model_market.fit_regression(X[0:(X.shape[0])], Y[0:(X.shape[0])])
+            y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
+            y_real = buyers[n].Y[(window_size+day*steps_t)]
+            g_market =  RMSE(y_real, y_market)
+            
+        
+            model_own = Online_SGD(wb_own['w'][n][0], wb_own['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            wb_own['w'][n] , wb_own['b'][n] = model_own.fit_regression(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
+            y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
+            g_own =  RMSE(y_real, y_own)
+            
+
+        else:
+            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            wb_market['w'][n] , wb_market['b'][n] = model_market.fit_online(X[0:(X.shape[0])], Y[0:(X.shape[0])])
+            y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
+            y_real = buyers[n].Y[(window_size+day*steps_t)]
+            g_market =  RMSE(y_real, y_market)
+        
+            model_own = Online_SGD(wb_own['w'][n], wb_own['b'][n], learning_rate=0.2,damp_factor=1.02)
+            wb_own['w'][n] , wb_own['b'][n] = model_own.fit_online(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
+            y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
+            g_own =  RMSE(y_real, y_own)    
+            
+
+        
+        
+            
+        #model_market = LinearRegression(fit_intercept=True).fit(Xalloc[0:(X.shape[0])], Y[0:(X.shape[0])])
+        #y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1))+max(0,p-b)*noise[1,:]) 
+        #y_real = buyers[n].Y[(window_size+day*steps_t)]
+        #g_market =  RMSE(y_real, y_market)
+        
+        #model_own = LinearRegression(fit_intercept=True).fit(Xalloc.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])
+        #y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])
+        #g_own =  RMSE(y_real, y_own)
         
         rev_purchased_forecast = b*((g_own-g_market)/(np.max(Y)-np.min(Y)))*100
         print('Real gain', n+1, 'had a gain funtion of', rev_purchased_forecast)

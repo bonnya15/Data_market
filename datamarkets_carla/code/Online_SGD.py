@@ -15,10 +15,6 @@ class Online_SGD:
 
     def fit_online(self, X, Y):
 
-        # self.w = np.loadtxt(self.w_file).reshape(1, X.shape[1])  # Reading weights and bias
-        # self.b = np.loadtxt(self.b_file).reshape(1, 1)
-
-
         for i in range(X.shape[0]):
             x = (np.array(X))[i].reshape(1, X.shape[1])
             y = (np.array(Y))[i].reshape(1, 1)
@@ -27,15 +23,6 @@ class Online_SGD:
             self.w = self.w + self.learning_rate * Lw
             self.b = self.b + self.learning_rate * Lb
             self.learning_rate = self.learning_rate / self.damp_factor
-
-        # a_file = open(self.w_file, "w")
-        # for row in self.w:
-        #     np.savetxt(a_file, row)
-        # a_file.close()
-        # b_file = open(self.b_file, "w")
-        # for row in self.b:
-        #     np.savetxt(b_file, row)
-        # b_file.close()
 
         return self.w, self.b
 
