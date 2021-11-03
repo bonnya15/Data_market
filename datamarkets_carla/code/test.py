@@ -69,6 +69,9 @@ wb_market['b'] = [[np.zeros(1,)] for x in range(len(buyers_))]
 wb_own['b'] = [[np.zeros(1,)] for x in range(len(buyers_))]
 
 
+buyer_coeff_mat_Online = pd.DataFrame()
+
+
 
 results = np.zeros((ndays, M+5, N))  # it will save relevant results
 
@@ -140,7 +143,11 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
         new_market = new_market.append(new1, ignore_index = True)
         new_own = new_own.append(new2, ignore_index = True)  
+        
+        
             
+            
+    buyer_coeff_mat_Online = buyer_coeff_mat_Online.append(pd.DataFrame(wb_market))
 
             
  

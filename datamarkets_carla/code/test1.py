@@ -60,6 +60,9 @@ for i, k in enumerate(buyers_):
 wb_market1 = pd.DataFrame()
 wb_own1 = pd.DataFrame()
 
+buyer_coeff_mat_LR = pd.DataFrame()
+
+
 wb_market1['Buyers'] = buyers_
 wb_own1['Own'] = buyers_
 wb_market1['w'] = [[np.zeros(len(buyers_,))] for x in range(len(buyers_))]
@@ -123,3 +126,5 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
         new_market1 = new_market1.append(new1, ignore_index = True)
         new_own1 = new_own1.append(new2, ignore_index = True)
+        
+    buyer_coeff_mat_LR = buyer_coeff_mat_LR.append(pd.DataFrame(wb_market1))
