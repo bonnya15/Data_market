@@ -99,7 +99,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 
 
 
-        model_market = Online_SGD(wb_market1['w'][n][0], wb_market1['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+        model_market = Online_SGD(wb_market1['w'][n][0], wb_market1['b'][n][0], learning_rate=0.01,damp_factor=1.02)
         wb_market1['w'][n] , wb_market1['b'][n] = model_market.fit_regression(X[0:(X.shape[0])], Y[0:(X.shape[0])])
         y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1))) 
         y_real = buyers[n].Y[(window_size+day*steps_t)]
@@ -107,7 +107,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
 
         
-        model_own = Online_SGD(wb_own1['w'][n], wb_own1['b'][n], learning_rate=0.2,damp_factor=1.02)
+        model_own = Online_SGD(wb_own1['w'][n], wb_own1['b'][n], learning_rate=0.01,damp_factor=1.02)
         wb_own1['w'][n] , wb_own1['b'][n] = model_own.fit_regression(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])
         y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])
         g_own =  RMSE(y_real, y_own)  
@@ -128,3 +128,14 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         new_own1 = new_own1.append(new2, ignore_index = True)
         
     buyer_coeff_mat_LR = buyer_coeff_mat_LR.append(pd.DataFrame(wb_market1))
+
+    
+new_own['Buyer'][0]  =  1
+new_own['day'][0] = 1
+
+new_own1['Buyer'][0]  =  1
+new_own1['day'][0] = 1
+
+
+new_own.to_csv('Online_learning_own_data.csv')
+new_own1.to_csv('Linear_regression_own_data.csv')

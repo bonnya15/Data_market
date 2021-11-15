@@ -11,6 +11,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import SGDRegressor
 import pandas as pd
 from Online_SGD import *
+import matplotlib.pyplot as plt
 ## Incorporating online SGD
 
 
@@ -105,27 +106,27 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
             
         if day == 0 :
             
-            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.01,damp_factor=1.02)
             wb_market['w'][n] , wb_market['b'][n] = model_market.fit_regression(X[0:(X.shape[0])], Y[0:(X.shape[0])])
             y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
             y_real = buyers[n].Y[(window_size+day*steps_t)]
             g_market =  RMSE(y_real, y_market)
         
         
-            model_own = Online_SGD(wb_own['w'][n][0], wb_own['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            model_own = Online_SGD(wb_own['w'][n][0], wb_own['b'][n][0], learning_rate=0.01,damp_factor=1.02)
             wb_own['w'][n] , wb_own['b'][n] = model_own.fit_regression(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
             y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
             g_own =  RMSE(y_real, y_own)
 
             
         else:
-            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.01,damp_factor=1.02)
             wb_market['w'][n] , wb_market['b'][n] = model_market.fit_online(X[0:(X.shape[0])], Y[0:(X.shape[0])])
             y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
             y_real = buyers[n].Y[(window_size+day*steps_t)]
             g_market =  RMSE(y_real, y_market)
         
-            model_own = Online_SGD(wb_own['w'][n], wb_own['b'][n], learning_rate=0.2,damp_factor=1.02)
+            model_own = Online_SGD(wb_own['w'][n], wb_own['b'][n], learning_rate=0.01,damp_factor=1.02)
             wb_own['w'][n] , wb_own['b'][n] = model_own.fit_online(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
             y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
             g_own =  RMSE(y_real, y_own)  
@@ -148,6 +149,48 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
             
             
     buyer_coeff_mat_Online = buyer_coeff_mat_Online.append(pd.DataFrame(wb_market))
+    
+    
+new_market['Buyer'][0]  =  1
+new_market['day'][0] = 1
 
-            
- 
+new_market1['Buyer'][0]  =  1
+new_market1['day'][0] = 1
+    
+new_market[new_market['Buyer'] == 1]['y_market']
+new_market1[new_market1['Buyer'] == 1]['y_market']
+
+plt.plot(new_market[new_market['Buyer'] == 1]['day'] , new_market[new_market['Buyer'] == 1]['y_market'] ,'r', label = 'Online Learning')
+plt.plot(new_market[new_market['Buyer'] == 1]['day'] , new_market1[new_market1['Buyer'] == 1]['y_market'], 'b', label = 'Linear Regression')            
+plt.title('Buyer 1 forecast')
+plt.xlabel('Day')
+plt.ylabel('Forecast')
+plt.legend()
+
+
+plt.savefig('Buyer_1.jpeg')
+plt.show()
+
+
+plt.plot(new_market[new_market['Buyer'] == 2]['day'] , new_market[new_market['Buyer'] == 2]['y_market'] ,'r', label = 'Online Learning')
+plt.plot(new_market[new_market['Buyer'] == 2]['day'] , new_market1[new_market1['Buyer'] == 2]['y_market'], 'b', label = 'Linear Regression')            
+plt.title('Buyer 2 forecast')
+plt.xlabel('Day')
+plt.ylabel('Forecast')
+plt.legend()
+
+plt.savefig('Buyer_2.jpeg')
+plt.show()
+
+plt.plot(new_market[new_market['Buyer'] == 3]['day'] , new_market[new_market['Buyer'] == 3]['y_market'] ,'r', label = 'Online Learning')
+plt.plot(new_market[new_market['Buyer'] == 3]['day'] , new_market1[new_market1['Buyer'] == 3]['y_market'], 'b', label = 'Linear Regression')            
+plt.title('Buyer 3 forecast')
+plt.xlabel('Day')
+plt.ylabel('Forecast')
+plt.legend()
+
+plt.savefig('Buyer_3.jpeg')
+plt.show()
+
+new_market.to_csv('Online_learning.csv')
+new_market1.to_csv('Linear_regression.csv')

@@ -35,7 +35,7 @@ def set_hours(hours):
     hours_ = hours # \Delta parameter -- see paper
 
 class Buyer: # class to save relevant data per buyer
-    def update_parameters(self, selfX, X, Y, b, max_paym):
+    def update_parameters(self, selfX, X, Y, b, max_paym):  # Save weights and Biases 
         self.selfX = selfX # own data
         self.Y = Y # data to predict
         self.b = b # bids
