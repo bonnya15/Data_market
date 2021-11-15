@@ -53,7 +53,19 @@ for i, k in enumerate(buyers_):
     X = dfX.iloc[:, [j for j, c in enumerate(dfY.columns) if j != k]].copy()
     X[selfX.columns] = selfX
     max_paym = 10
-    buyers[i].update_parameters(selfX, X, Y, bids[i],max_paym)
+    
+    wb_market = pd.DataFrame()
+    wb_own = pd.DataFrame()
+    
+    wb_market['w'] = [np.zeros(len(buyers_,))]
+    wb_own['w'] = [np.zeros(1,)] 
+    wb_market['b'] = [np.zeros(1,)] 
+    wb_own['b'] = [np.zeros(1,)]  
+    
+    
+    coef_market = wb_market
+    coef_own = wb_own
+    buyers[i].update_parameters(selfX, X, Y, bids[i],max_paym, coef_market, coef_own)
 
 # #######################################
 # B. DATA MARKET SIMULATION 

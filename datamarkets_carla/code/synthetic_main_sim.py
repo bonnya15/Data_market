@@ -35,12 +35,15 @@ def set_hours(hours):
     hours_ = hours # \Delta parameter -- see paper
 
 class Buyer: # class to save relevant data per buyer
-    def update_parameters(self, selfX, X, Y, b, max_paym):  # Save weights and Biases 
+    def update_parameters(self, selfX, X, Y, b, max_paym, coef_market, coef_own):  # Save weights and Biases 
         self.selfX = selfX # own data
         self.Y = Y # data to predict
         self.b = b # bids
         self.max_paym = max_paym # bids
         self.X = X # all available data
+        self.coef_market = coef_market #saving the latest coefficients of the model for the market
+        self.coef_own = coef_own       #saving the latest coefficients of the model for own data 
+        
 
 # 2. RMSE
 
