@@ -77,7 +77,7 @@ wb_market = pd.DataFrame()
 wb_own = pd.DataFrame()
 
 wb_market['Buyers'] = buyers_
-wb_own['Own'] = buyers_
+wb_own['Buyers'] = buyers_
 wb_market['w'] = [[np.zeros(len(buyers_,))] for x in range(len(buyers_))]
 wb_own['w'] = [[np.zeros(1,)] for x in range(len(buyers_))]
 wb_market['b'] = [[np.zeros(1,)] for x in range(len(buyers_))]
@@ -126,11 +126,11 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('3 - Buyer', n+1, ' bids', b)
         
         # 4th step: market allocates features:
-        sigma = 0.5*X.std().mean()
-        noise = np.random.normal(0, sigma, X.shape)
-        Xalloc = data_allocation(p, b, X, noise)
-        
-        print('4 - Market allocates features to Buyer', n+1,
+        sigma = 0.5*Y.std()
+        noise = np.random.normal(0, sigma, Y.shape)
+        Xalloc = X
+        Yalloc=data_allocation(p, b, Y, noise)
+        print('4 - Market allocates Predictions to Buyer', n+1,
               ' adding noise Normal(0,(sigma x', np.round(max(0, p-b)), '))^2')
                 
         # update price weights  
@@ -138,8 +138,8 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('probs',probs,'w',w)
         
         # 5th step: Buyer n computes the gain
-        g = model(Xalloc.values, Y)
-        print('g',g)
+        g = model(Xalloc.values, Yalloc)
+        print('g', g)
         
         print('5 - Buyer', n+1, 'had a RMSE gain of', g)
         # 6th step: revenue computation
@@ -159,27 +159,27 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
         if day == 0 :
             
-            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.01,damp_factor=1.02)
             wb_market['w'][n] , wb_market['b'][n] = model_market.fit_regression(X[0:(X.shape[0])], Y[0:(X.shape[0])])
             y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
             y_real = buyers[n].Y[(window_size+day*steps_t)]
             g_market =  RMSE(y_real, y_market)
             
         
-            model_own = Online_SGD(wb_own['w'][n][0], wb_own['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            model_own = Online_SGD(wb_own['w'][n][0], wb_own['b'][n][0], learning_rate=0.01,damp_factor=1.02)
             wb_own['w'][n] , wb_own['b'][n] = model_own.fit_regression(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
             y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
             g_own =  RMSE(y_real, y_own)
             
 
         else:
-            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.2,damp_factor=1.02)
+            model_market = Online_SGD(wb_market['w'][n][0], wb_market['b'][n][0], learning_rate=0.01,damp_factor=1.02)
             wb_market['w'][n] , wb_market['b'][n] = model_market.fit_online(X[0:(X.shape[0])], Y[0:(X.shape[0])])
             y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
             y_real = buyers[n].Y[(window_size+day*steps_t)]
             g_market =  RMSE(y_real, y_market)
         
-            model_own = Online_SGD(wb_own['w'][n], wb_own['b'][n], learning_rate=0.2,damp_factor=1.02)
+            model_own = Online_SGD(wb_own['w'][n], wb_own['b'][n], learning_rate=0.01,damp_factor=1.02)
             wb_own['w'][n] , wb_own['b'][n] = model_own.fit_online(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
             y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
             g_own =  RMSE(y_real, y_own)    

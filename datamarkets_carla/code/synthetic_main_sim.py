@@ -68,13 +68,13 @@ def model(X, Y, weight, bias): # model function (train and evaluate the correspo
     Ytrain = Y.iloc[0:(X.shape[0]-hours_-1), :]
     Ytest = Y.iloc[(X.shape[0]-hours_):, :]
     # train models
-    #model_own = LinearRegression(fit_intercept=True).fit(Xown_train.values, Ytrain.values)
-    #model_market = LinearRegression(fit_intercept=True).fit(Xtrain.values, Ytrain.values)
+    model_own = LinearRegression(fit_intercept=True).fit(Xown_train.values, Ytrain.values)
+    model_market = LinearRegression(fit_intercept=True).fit(Xtrain.values, Ytrain.values)
 
-    model_own = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
-    w1,b1 = model_own.fit_regression(Xown_train.values, Ytrain.values)
-    model_market = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
-    w2,b2 = model_market.fit_regression(Xtrain.values, Ytrain.values)
+    # model_own = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
+    # w1,b1 = model_own.fit_regression(Xown_train.values, Ytrain.values)
+    # model_market = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
+    # w2,b2 = model_market.fit_regression(Xtrain.values, Ytrain.values)
 
     # compute the rmse for both models
     y_own =  model_own.predict(Xown_test.values.reshape((hours_,1)))
@@ -87,15 +87,15 @@ def model(X, Y, weight, bias): # model function (train and evaluate the correspo
 
 # 4. DATA ALLOCATION - PAPER'S EQUATION (18)
 
-def data_allocation(p, b, X, noise):
+def data_allocation(p, b, Y, noise):
     # Function which receives the current price (p) and bid (b) and decide
     # the quality at this buyer gets allocate
-    Xnoise = X + max(0, p-b)*noise
-    Xnoise = pd.DataFrame(Xnoise)
-    X = pd.DataFrame(X)
+    Ynoise = Y + max(0, p-b)*noise
+    Ynoise = pd.DataFrame(Ynoise)
+    Y = pd.DataFrame(Y)
     # the last variable is known by the owner!
-    Xnoise.iloc[:, X.shape[1]-1] = X.iloc[:, X.shape[1]-1]
-    return Xnoise
+    Ynoise.iloc[:, Y.shape[1]-1] = Y.iloc[:, Y.shape[1]-1]
+    return Ynoise
 
 # 5. REVENUE - PAPER'S EQUATION (19)
 
@@ -103,35 +103,35 @@ def revenue(p, b, Y, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
     reps = 5 
     expected_revenue = np.repeat(0.0, reps)
-    sigma = X.std().mean()
+    sigma = Y.std().mean()
     for i in range(reps):  
         np.random.seed(i)
-        noise = np.random.normal(0, sigma, X.shape)
+        noise = np.random.normal(0, sigma, Y.shape)
         def f(z):
-            XX = data_allocation(p, z, X, noise)
-            return model(XX, Y)
-        X_alloc = data_allocation(p, b, X, noise)
+            YY = data_allocation(p, z, Y, noise)
+            return model(X, YY)
+        Yalloc=data_allocation(p, b, Y, noise)
         xaxis = np.arange(Bmin,b+epsilon,0.5) 
         if len(xaxis)==1:
-            expected_revenue[i] = max(0, b*model(X_alloc, Y))
+            expected_revenue[i] = max(0, b*model(X, Yalloc))
         else:
             I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
-            expected_revenue[i] = max(0, b*model(X_alloc, Y) - I_)
+            expected_revenue[i] = max(0, b*model(X, Yalloc) - I_)
     return expected_revenue.mean()
 
 
 def revenue_posAlloc(p, b, Y, X, noise, Bmin, epsilon):
     # same as revenue but using fixed noise matrix
     def f(z):
-        XX = data_allocation(p, z, X, noise)
-        return model(XX, Y)
-    X_alloc = data_allocation(p, b, X, noise)
+        YY = data_allocation(p, z, Y, noise)
+        return model(X, YY)
+    Yalloc=data_allocation(p, b, Y, noise)
     xaxis = np.arange(Bmin,b+epsilon,0.5) 
     if len(xaxis)==1:
-        expected_revenue = max(0, b*model(X_alloc, Y))
+        expected_revenue = max(0, b*model(X, Yalloc))
     else:
         I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
-        expected_revenue = max(0, b*model(X_alloc, Y) - I_)
+        expected_revenue = max(0, b*model(X, Yalloc) - I_)
 
     return expected_revenue
 
