@@ -99,7 +99,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
             p = np.random.uniform(Bmin, Bmax) # select a random price
         else:
             # NEW - define the price as the mean value of the distribution:
-            #p = sum(probs*possible_p) 
+            p = sum(probs*possible_p)
             p = (p//epsilon+1)*(epsilon) # market's price = expected value  (Problem)
             # OLD - The paper considers the price by random generation: 
             # U = np.random.uniform(0, 1)
@@ -128,34 +128,34 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('3 - Buyer', n+1, ' bids', b)
         
         # 4th step: market allocates features:
-        sigma = 0.5*X.std().mean()
-        noise = np.random.normal(0, sigma, X.shape)
-        Xalloc = data_allocation(p, b, X, noise)
-        
-        print('4 - Market allocates features to Buyer', n+1,
+        sigma = 0.5*Y.std()
+        noise = np.random.normal(0, sigma, Y.shape)
+        Xalloc = X
+        Yalloc=data_allocation(p, b, Y, noise)
+        print('4 - Market allocates Predictions to Buyer', n+1,
               ' adding noise Normal(0,(sigma x', np.round(max(0, p-b)), '))^2')
                 
         # update price weights  
-        #probs, w = price_update(b, Y, X, Bmin,Bmax, epsilon, delta, N, w)
-        #print('probs',probs,'w',w)
+        probs, w = price_update(b, Y, X, Bmin,Bmax, epsilon, delta, N, w)
+        print('probs',probs,'w',w)
         
         # 5th step: Buyer n computes the gain
-        #g = model(Xalloc.values, Y)
-        #print('g',g)
+        g = model(Xalloc.values, Yalloc)
+        print('g', g)
         
-        #print('5 - Buyer', n+1, 'had a RMSE gain of', g)
+        print('5 - Buyer', n+1, 'had a RMSE gain of', g)
         # 6th step: revenue computation
-        #if b==Bmin: 
-        #    r = g*b
-        #else:
-        #    r = revenue_posAlloc(p, b, Y, X, noise, Bmin, epsilon)
-        #print('6 - Market computes the revenue', r)
+        if b==Bmin:
+            r = g*b
+        else:
+            r = revenue_posAlloc(p, b, Y, X, noise, Bmin, epsilon)
+        print('6 - Market computes the revenue', r)
         
         # 7th step: divide money by sellers
-        #if r>0:
-        #    r_division = shapley_robust(Y, Xalloc, 5, 1)
-        #    results[day, 5:(5+M-1), n] = r_division # money division by sellers
-        #    del r_division
+        if r>0:
+            r_division = shapley_robust(Y, Xalloc, 5, 1)
+            results[day, 5:(5+M-1), n] = r_division # money division by sellers
+            del r_division
             
         # 8th step: compute the effective gain when predicting 1h-ahead
         
@@ -189,50 +189,59 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 
         
         
-        
-        #rev_purchased_forecast = b*((g_own-g_market)/(np.max(Y)-np.min(Y)))*100
-        #print('Real gain', n+1, 'had a gain funtion of', rev_purchased_forecast)
+
+        #model_market = LinearRegression(fit_intercept=True).fit(Xalloc[0:(X.shape[0])], Y[0:(X.shape[0])])
+        #y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1))+max(0,p-b)*noise[1,:])
+        #y_real = buyers[n].Y[(window_size+day*steps_t)]
+        #g_market =  RMSE(y_real, y_market)
+
+        #model_own = LinearRegression(fit_intercept=True).fit(Xalloc.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])
+        #y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])
+        #g_own =  RMSE(y_real, y_own)
+
+        rev_purchased_forecast = b*((g_own-g_market)/(np.max(Y)-np.min(Y)))*100
+        print('Real gain', n+1, 'had a gain funtion of', rev_purchased_forecast)
         
         # save relevant info
-        #results[day, 0, n] = p # price fixed by the market for buyer n
-        #results[day, 1, n] = b # bid offered by buyer n
-        #results[day, 2, n] = g*b # gain estimated by the market for buyer n
-        #results[day, 3, n] = r # the value paid by the buyer n
-        #results[day, 4, n] = rev_purchased_forecast # gain forecasting 1h-ahead
-        #del X, Y, p, r, noise, g
+        results[day, 0, n] = p # price fixed by the market for buyer n
+        results[day, 1, n] = b # bid offered by buyer n
+        results[day, 2, n] = g*b # gain estimated by the market for buyer n
+        results[day, 3, n] = r # the value paid by the buyer n
+        results[day, 4, n] = rev_purchased_forecast # gain forecasting 1h-ahead
+        del X, Y, p, r, noise, g
     #np.save('market_results.npy', results[0:day,:,:])
 
 
 # save results in 'results' folder
-#import os
-#if not os.path.exists('../results'):
-#    os.makedirs('../results')
+import os
+if not os.path.exists('../results'):
+    os.makedirs('../results')
     
-#p = results[:, 0,  :]
-#b = results[:, 1,  :]
-#g = results[:, 2,  :]
-#r = results[:, 3,  :]
-#rev_purchased_forecast = results[:, 4,  :]
-#df = pd.DataFrame(b)
-#df.to_csv(path_or_buf='../results/bids-per-buyer.csv', index=False)
-#df = pd.DataFrame(p)
-#df.to_csv(path_or_buf='../results/prices-per-buyer.csv', index=False)
-#df = pd.DataFrame(g)
-#df.to_csv(path_or_buf='../results/estimated-gains-per-buyer.csv', index=False)
-#df = pd.DataFrame(r)
-#df.to_csv(path_or_buf='../results/payments-per-buyer.csv', index=False)
-#df = pd.DataFrame(rev_purchased_forecast)
-#df.to_csv(path_or_buf='../results/gains-ahead-per-buyer.csv', index=False)
+p = results[:, 0,  :]
+b = results[:, 1,  :]
+g = results[:, 2,  :]
+r = results[:, 3,  :]
+rev_purchased_forecast = results[:, 4,  :]
+df = pd.DataFrame(b)
+df.to_csv(path_or_buf='../results/bids-per-buyer.csv', index=False)
+df = pd.DataFrame(p)
+df.to_csv(path_or_buf='../results/prices-per-buyer.csv', index=False)
+df = pd.DataFrame(g)
+df.to_csv(path_or_buf='../results/estimated-gains-per-buyer.csv', index=False)
+df = pd.DataFrame(r)
+df.to_csv(path_or_buf='../results/payments-per-buyer.csv', index=False)
+df = pd.DataFrame(rev_purchased_forecast)
+df.to_csv(path_or_buf='../results/gains-ahead-per-buyer.csv', index=False)
 
 # compute the values received by seller
-#rm_all = np.zeros((results.shape[0], results.shape[2]))
-#for i in np.arange(0,M):
-#    r_m = 0
-#    for j in np.arange(0,M):
-#        if i<j:
-#            r_m = r_m + results[:, (5+i), j]*results[:, 3, j]
-#        if i>j:
-#            r_m = r_m + results[:, (5+i-1), j]*results[:, 3, j]
-#        rm_all[:,i] = r_m
-#df = pd.DataFrame(rm_all)
-#df.to_csv(path_or_buf='../results/revenue-per-seller.csv', index=False)
+rm_all = np.zeros((results.shape[0], results.shape[2]))
+for i in np.arange(0,M):
+    r_m = 0
+    for j in np.arange(0,M):
+        if i<j:
+            r_m = r_m + results[:, (5+i), j]*results[:, 3, j]
+        if i>j:
+            r_m = r_m + results[:, (5+i-1), j]*results[:, 3, j]
+        rm_all[:,i] = r_m
+df = pd.DataFrame(rm_all)
+df.to_csv(path_or_buf='../results/revenue-per-seller.csv', index=False)
