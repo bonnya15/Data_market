@@ -55,7 +55,7 @@ def RMSE(Y, Yh):
 
 # 3. MODEL USED TO PREDICT BUYER'S DATA
 
-def model(X, Y, weight, bias): # model function (train and evaluate the corresponding gain) 
+def model(X, Y): # model function (train and evaluate the corresponding gain) 
     # X: covariates
     # Y: target
     X = pd.DataFrame(X)
@@ -63,30 +63,93 @@ def model(X, Y, weight, bias): # model function (train and evaluate the correspo
     X_own = X.iloc[:, len(X.columns)-1].copy()
     Y = pd.DataFrame(Y)
     # variables of the owner
-    Xown_train = pd.DataFrame(X_own.iloc[0:(X.shape[0]-hours_-1)])
-    Xown_test = pd.DataFrame([X_own.iloc[(X.shape[0]-hours_):]])
+    Xown_train = pd.DataFrame(X_own.iloc[0:(X.shape[0]-hours_)])
+    Xown_test = pd.DataFrame([X_own.iloc[(X.shape[0]-hours_):]]).T
     # variables from the market
-    Xtrain = X.iloc[0:(X.shape[0]-hours_-1), :]
+    Xtrain = X.iloc[0:(X.shape[0]-hours_), :]
     Xtest = X.iloc[(X.shape[0]-hours_):, :]
-    Ytrain = Y.iloc[0:(X.shape[0]-hours_-1), :]
+    Ytrain = Y.iloc[0:(X.shape[0]-hours_), :]
     Ytest = Y.iloc[(X.shape[0]-hours_):, :]
     # train models
     model_own = LinearRegression(fit_intercept=True).fit(Xown_train.values, Ytrain.values)
     model_market = LinearRegression(fit_intercept=True).fit(Xtrain.values, Ytrain.values)
+    
+    
+    weight_market= model_market.coef_.reshape(1, X.shape[1])
+    weight_own= model_own.coef_.reshape(1,1)
+    bias_market=model_market.intercept_.reshape(1, 1)
+    bias_own=model_own.intercept_.reshape(1, 1)
+    coeff={'w':[weight_market,weight_own],'b':[bias_market,bias_own]}
+    coeff = pd.DataFrame(coeff)    
+    
+    y_market = []
+    y_own = []
+    y = []
+    
+    y.append(Y[(Y.shape[0]-hours_):(Y.shape[0]-hours_+1)])
+    y_market.append(model_market.predict(X[(X.shape[0]-hours_):(X.shape[0]-hours_+1)]))
+    y_own.append(model_own.predict(X_own[(X.shape[0]-hours_):(X.shape[0]-hours_+1)].values.reshape((1,-1))))
 
-    # model_own = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
-    # w1,b1 = model_own.fit_regression(Xown_train.values, Ytrain.values)
-    # model_market = Online_SGD(weight, bias, learning_rate=0.2,damp_factor=1.02)
-    # w2,b2 = model_market.fit_regression(Xtrain.values, Ytrain.values)
+    for i in range(hours_):
+        
+        
+        model_market_online = Online_SGD(coeff[0:1]['w'][0], coeff[0:1]['b'][0], learning_rate=0.01,damp_factor=1.02)
+        weight_market, bias_market =  model_market_online.fit_online(Xtest[i:i+1], Ytest[i:i+1])
+    
+        model_own_online = Online_SGD(coeff[1:2]['w'][1], coeff[1:2]['b'][1], learning_rate=0.01,damp_factor=1.02)
+        weight_own , bias_own = model_own_online.fit_online(Xown_test[i:i+1], Ytrain[i:i+1])
+        
+        coeff={'w':[weight_market,weight_own],'b':[bias_market,bias_own]}
+        coeff = pd.DataFrame(coeff)
+        
+        if i == hours_ :
+            break 
+        else:
+            y.append(Y[i+1:i+2].values)
+            y_market.append(model_market_online.predict(Xtest[i+1:i+2]))
+            y_own.append(model_own_online.predict(Xown_test[i+1:i+2]))        
+        
+        
 
-    # compute the rmse for both models
-    y_own =  model_own.predict(Xown_test.values.reshape((hours_,1)))
-    g_own = np.sqrt(np.mean((Ytest.values - y_own)**2))
-    y_market = model_market.predict(Xtest.values)
+    df = pd.DataFrame(columns=('Y','y_own','y_market'))
+    df['Y'] = y
+    df['y_own'] = y_own
+    df['y_market'] = y_market
+
+    return (pd.DataFrame(coeff),df)
+
+
+
+
+def model_Online(X,Y, wb_market, wb_own):
+    # X: covariates
+    # Y: target
+    # by construction, own features are in the last column
+    X_own = X.iloc[:, len(X.columns)-1].copy()
+    X_own = X_own.values.reshape(-1, 1)
+    Y = pd.DataFrame(Y)
+
+    # train models
+    model_market_online = Online_SGD(wb_market['w'][0], wb_market['b'][0], learning_rate=0.01,damp_factor=1.02)
+    weight_market, bias_market =  model_market_online.fit_online(X, Y)
+    
+    model_own_online = Online_SGD(wb_own['w'][0], wb_own['b'][0], learning_rate=0.01,damp_factor=1.02)
+    weight_own , bias_own = model_own_online.fit_online(X_own, Y)
+    
+
+    coeff= {'w' : [weight_market, weight_own], 'b' : [bias_market, bias_own]}
+
+    return (pd.DataFrame(coeff))     
+
+    
+def gain(Y,y_own, y_market):
+    g_own = np.sqrt(np.mean((Y - y_own)**2))
     g_market = np.sqrt(np.mean((Ytest.values - y_market)**2))
     g = (g_own-g_market)/(np.max(Y)-np.min(Y)) # gain
 
-    return (max(0,g.mean())*100) 
+    return(max(0,g.mean())*100)    
+        
+    
 
 # 4. DATA ALLOCATION - PAPER'S EQUATION (18)
 
