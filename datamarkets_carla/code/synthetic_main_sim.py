@@ -128,6 +128,11 @@ def model_Online(X,Y, wb_market, wb_own):
     X_own = X.iloc[:, len(X.columns)-1].copy()
     X_own = X_own.values.reshape(-1, 1)
     Y = pd.DataFrame(Y)
+# =============================================================================
+#     y_market = []
+#     y_own = []
+#     y = []
+# =============================================================================
 
     # train models
     model_market_online = Online_SGD(wb_market['w'][0], wb_market['b'][0], learning_rate=0.01,damp_factor=1.02)
@@ -138,13 +143,23 @@ def model_Online(X,Y, wb_market, wb_own):
     
 
     coeff= {'w' : [weight_market, weight_own], 'b' : [bias_market, bias_own]}
+# =============================================================================
+#     y.append(Y[i+1:i+2].values)
+#     y_market.append(model_market_online.predict(Xtest[i+1:i+2]))
+#     y_own.append(model_own_online.predict(Xown_test[i+1:i+2]))
+#     
+#     df = pd.DataFrame(columns=('Y','y_own','y_market'))
+#     df['Y'] = y
+#     df['y_own'] = y_own
+#     df['y_market'] = y_market
+# =============================================================================
 
     return (pd.DataFrame(coeff))     
 
     
 def gain(Y,y_own, y_market):
     g_own = np.sqrt(np.mean((Y - y_own)**2))
-    g_market = np.sqrt(np.mean((Ytest.values - y_market)**2))
+    g_market = np.sqrt(np.mean((Y.values - y_market)**2))
     g = (g_own-g_market)/(np.max(Y)-np.min(Y)) # gain
 
     return(max(0,g.mean())*100)    
@@ -165,7 +180,7 @@ def data_allocation(p, b, Y, noise):
 
 # 5. REVENUE - PAPER'S EQUATION (19)
 
-def revenue(p, b, Y, X, Bmin, epsilon):
+def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
     reps = 5 
     expected_revenue = np.repeat(0.0, reps)
@@ -174,8 +189,8 @@ def revenue(p, b, Y, X, Bmin, epsilon):
         np.random.seed(i)
         noise = np.random.normal(0, sigma, Y.shape)
         def f(z):
-            YY = data_allocation(p, z, Y, noise)
-            return model(X, YY)
+            YY = data_allocation(p, z, y_market, noise)
+            return gain(Y,y_own, YY)
         Yalloc=data_allocation(p, b, Y, noise)
         xaxis = np.arange(Bmin,b+epsilon,0.5) 
         if len(xaxis)==1:
@@ -186,11 +201,11 @@ def revenue(p, b, Y, X, Bmin, epsilon):
     return expected_revenue.mean()
 
 
-def revenue_posAlloc(p, b, Y, X, noise, Bmin, epsilon):
+def revenue_posAlloc(p, b, Y,y_own, y_market, X, noise, Bmin, epsilon):
     # same as revenue but using fixed noise matrix
     def f(z):
         YY = data_allocation(p, z, Y, noise)
-        return model(X, YY)
+        return gain(Y,y_own, YY)
     Yalloc=data_allocation(p, b, Y, noise)
     xaxis = np.arange(Bmin,b+epsilon,0.5) 
     if len(xaxis)==1:
@@ -203,18 +218,18 @@ def revenue_posAlloc(p, b, Y, X, noise, Bmin, epsilon):
 
 # 6. PRICE UPDATE - PAPER'S ALGORITHM 2
 
-def aux_price(c_, w_last, b, Y, X, Bmax, delta, Bmin, epsilon):
-    g = revenue(c_, b, Y, X, Bmin, epsilon)/Bmax
+def aux_price(c_, w_last, b, Y,y_own, y_market, X, Bmax, delta, Bmin, epsilon):
+    g = revenue(c_, b, Y,y_own, y_market, X, Bmin, epsilon)/Bmax
     w = (1-delta)*w_last+delta*g
     return w
     
-def price_update(b, Y, X, Bmin, Bmax, epsilon, delta, N, w):
+def price_update(b, Y,y_own, y_market, X, Bmin, Bmax, epsilon, delta, N, w):
     c = np.arange(Bmin, Bmax+epsilon, epsilon)
     Wn = np.sum(w)
     probs = w/Wn
     res = []
     for j, c_ in enumerate(c):
-       res.append(aux_price(c_, w[j], b, Y, X, Bmax, delta, Bmin, epsilon))
+       res.append(aux_price(c_, w[j], b, Y,y_own, y_market, X, Bmax, delta, Bmin, epsilon))
     #w = np.array([r.get() for r in res])
     w = w.transpose()
     # print('weights', w/np.sum(w))
