@@ -102,14 +102,12 @@ def model(X, Y): # model function (train and evaluate the corresponding gain)
         coeff={'w':[weight_market,weight_own],'b':[bias_market,bias_own]}
         coeff = pd.DataFrame(coeff)
         
-        if i == hours_ :
+        if i == hours_-1 :
             break 
         else:
-            y.append(Y[i+1:i+2].values[0][0])
-            k=model_market_online.predict(Xtest[i+1:i+2])
-            print(k[0])
-            y_market.append(k[0])
-            y_own.append(model_own_online.predict(Xown_test[i+1:i+2]))        
+            y.append(Ytest[i+1:i+2].values[0][0])
+            y_market.append(model_market_online.predict(Xtest[i+1:i+2])[0])
+            y_own.append(model_own_online.predict(Xown_test[i+1:i+2])[0])        
         
         
 
@@ -160,6 +158,13 @@ def model_Online(X,Y, wb_market, wb_own):
 
     
 def gain(Y,y_own, y_market):
+# =============================================================================
+#     print(len(Y),len(y_own),len(y_market))
+#     print(type(Y),type(y_own),type(y_market))
+#     print(y_market)
+#     print(y_own)
+# =============================================================================
+    y_market=y_market.squeeze()
     g_own = np.sqrt(np.mean((Y - y_own)**2))
     g_market = np.sqrt(np.mean((Y.values - y_market)**2))
     g = (g_own-g_market)/(np.max(Y)-np.min(Y)) # gain
@@ -186,7 +191,7 @@ def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
     reps = 5 
     expected_revenue = np.repeat(0.0, reps)
-    sigma = Y.std().mean()
+    sigma = Y.std()
     for i in range(reps):  
         np.random.seed(i)
         noise = np.random.normal(0, sigma, Y.shape)
@@ -196,25 +201,25 @@ def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
         Yalloc=data_allocation(p, b, Y, noise)
         xaxis = np.arange(Bmin,b+epsilon,0.5) 
         if len(xaxis)==1:
-            expected_revenue[i] = max(0, b*model(X, Yalloc))
+            expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)))
         else:
             I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
-            expected_revenue[i] = max(0, b*model(X, Yalloc) - I_)
+            expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)) - I_)
     return expected_revenue.mean()
 
 
 def revenue_posAlloc(p, b, Y,y_own, y_market, X, noise, Bmin, epsilon):
+    print(Y.shape,y_own.shape,y_market.shape,noise.shape)
     # same as revenue but using fixed noise matrix
     def f(z):
         YY = data_allocation(p, z, Y, noise)
         return gain(Y,y_own, YY)
-    Yalloc=data_allocation(p, b, Y, noise)
     xaxis = np.arange(Bmin,b+epsilon,0.5) 
     if len(xaxis)==1:
-        expected_revenue = max(0, b*model(X, Yalloc))
+        expected_revenue = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)))
     else:
         I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
-        expected_revenue = max(0, b*model(X, Yalloc) - I_)
+        expected_revenue = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)) - I_)
 
     return expected_revenue
 

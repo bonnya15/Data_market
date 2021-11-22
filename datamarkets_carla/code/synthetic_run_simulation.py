@@ -36,7 +36,8 @@ dfY = pd.read_csv('../data/Y_VAR3.csv')
 
 # A.2 DEFINE PARAMETERS
 window_size = 365*24 # the size of the train set
-set_hours(24*31) # number of observations to estimate the gain (used to estimate
+set_hours(24*31)
+hours_=744 # number of observations to estimate the gain (used to estimate
 # the value to be paid) - the paper's notation is \Delta
 steps_t = 1 # how much times ahead the temporal window slides
 ndays = 5  # number of times the platform slides the window
@@ -171,7 +172,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
         # 4th step: market allocates features: (Not Relevant)
         sigma = 0.5*Y.std()
-        noise = np.random.normal(0, sigma, Y.shape)
+        noise = np.random.normal(0, sigma, (hours_,))
         Xalloc = X
 # =============================================================================
 #         Yalloc=data_allocation(p, b, Y, noise)
@@ -184,7 +185,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('probs',probs,'w',w)
         
         # 5th step: Buyer n computes the gain
-        g = model(Xalloc.values, Y)
+        g = gain(pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'])
         print('g', g)
         
         #print('5 - Buyer', n+1, 'had a RMSE gain of', g)
@@ -192,7 +193,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         if b==Bmin:
             r = g*b
         else:
-            r = revenue_posAlloc(p, b, Y, X, noise, Bmin, epsilon)
+            r = revenue_posAlloc(p, b, pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'], X, noise, Bmin, epsilon)
         print('6 - Market computes the revenue', r)
         
         # 7th step: divide money by sellers
