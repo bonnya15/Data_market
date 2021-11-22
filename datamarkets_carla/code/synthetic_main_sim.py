@@ -86,9 +86,9 @@ def model(X, Y): # model function (train and evaluate the corresponding gain)
     y_own = []
     y = []
     
-    y.append(Y[(Y.shape[0]-hours_):(Y.shape[0]-hours_+1)])
-    y_market.append(model_market.predict(X[(X.shape[0]-hours_):(X.shape[0]-hours_+1)]))
-    y_own.append(model_own.predict(X_own[(X.shape[0]-hours_):(X.shape[0]-hours_+1)].values.reshape((1,-1))))
+    y.append(Y[(Y.shape[0]-hours_):(Y.shape[0]-hours_+1)][0][8016])
+    y_market.append(model_market.predict(X[(X.shape[0]-hours_):(X.shape[0]-hours_+1)])[0][0])
+    y_own.append(model_own.predict(X_own[(X.shape[0]-hours_):(X.shape[0]-hours_+1)].values.reshape((1,-1)))[0][0])
 
     for i in range(hours_):
         
@@ -105,8 +105,10 @@ def model(X, Y): # model function (train and evaluate the corresponding gain)
         if i == hours_ :
             break 
         else:
-            y.append(Y[i+1:i+2].values)
-            y_market.append(model_market_online.predict(Xtest[i+1:i+2]))
+            y.append(Y[i+1:i+2].values[0][0])
+            k=model_market_online.predict(Xtest[i+1:i+2])
+            print(k[0])
+            y_market.append(k[0])
             y_own.append(model_own_online.predict(Xown_test[i+1:i+2]))        
         
         
