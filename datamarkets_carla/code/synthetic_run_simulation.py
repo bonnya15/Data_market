@@ -9,6 +9,11 @@
 
 ## Incorporating online SGD
 
+# =============================================================================
+# import sys
+# sys.stdout = open("new_output.txt", "w")
+# =============================================================================
+
 from synthetic_main_sim import *
 import numpy as np
 from sklearn.linear_model import LinearRegression
@@ -40,7 +45,7 @@ set_hours(24*31)
 hours_=744 # number of observations to estimate the gain (used to estimate
 # the value to be paid) - the paper's notation is \Delta
 steps_t = 1 # how much times ahead the temporal window slides
-ndays = 5  # number of times the platform slides the window
+ndays = 2  # number of times the platform slides the window
 
 buyers_ = np.arange(dfY.shape[1]) # number of buyers
 sellers_ = np.arange(dfY.shape[1]) # number of sellers
@@ -172,7 +177,9 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
         # 4th step: market allocates features: (Not Relevant)
         sigma = 0.5*Y.std()
+        #print("sigma=",sigma,"\n")
         noise = np.random.normal(0, sigma, (hours_,))
+        #print("noise=",noise,"\n")
         Xalloc = X
 # =============================================================================
 #         Yalloc=data_allocation(p, b, Y, noise)
@@ -182,13 +189,13 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
                 
         # update price weights  
         probs, w = price_update(b, pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'], X, Bmin,Bmax, epsilon, delta, N, w)
-        print('probs',probs,'w',w)
+        #print('probs',probs,'w',w)
         
         # 5th step: Buyer n computes the gain
         g = gain(pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'])
-        print('g', g)
+
         
-        #print('5 - Buyer', n+1, 'had a RMSE gain of', g)
+        print('5 - Buyer', n+1, 'had a RMSE gain of', g)
         # 6th step: revenue computation
         if b==Bmin:
             r = g*b
@@ -197,10 +204,12 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('6 - Market computes the revenue', r)
         
         # 7th step: divide money by sellers
-        if r>0:
-            r_division = shapley_robust(Y, Xalloc, 5, 1)
-            results[day, 5:(5+M-1), n] = r_division # money division by sellers
-            del r_division
+# =============================================================================
+#         if r>0:
+#             r_division = shapley_robust(Y, Xalloc, 5, 1)
+#             results[day, 5:(5+M-1), n] = r_division # money division by sellers
+#             del r_division
+# =============================================================================
             
         # 8th step: compute the effective gain when predicting 1h-ahead
         
@@ -293,4 +302,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 #         rm_all[:,i] = r_m
 # df = pd.DataFrame(rm_all)
 # df.to_csv(path_or_buf='../results/revenue-per-seller.csv', index=False)
+# =============================================================================
+# =============================================================================
+# sys.stdout.close()
 # =============================================================================
