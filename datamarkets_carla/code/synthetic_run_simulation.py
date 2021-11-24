@@ -46,7 +46,7 @@ set_hours(24*31)
 hours_=744 # number of observations to estimate the gain (used to estimate
 # the value to be paid) - the paper's notation is \Delta
 steps_t = 1 # how much times ahead the temporal window slides
-ndays = 2  # number of times the platform slides the window
+ndays = 5  # number of times the platform slides the window
 
 buyers_ = np.arange(dfY.shape[1]) # number of buyers
 sellers_ = np.arange(dfY.shape[1]) # number of sellers
@@ -164,11 +164,12 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
             y_own = own.predict(Xown_next)
             
             new_y = pd.DataFrame(columns=('Y','y_own','y_market'))
-            new_y['Y'] = Y_next[0][0]
+            new_y['Y'] = Y_next[0]
             new_y['y_own'] = y_own
             new_y['y_market'] = y_market
+            pred[n] = pred[n].iloc[1:]
             
-            pred[n].append(new_y , ignore_index = True)
+            pred[n] = pred[n].append(new_y , ignore_index = True)
             
             
             
@@ -188,6 +189,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 # =============================================================================
         print('4 - Market allocates Predictions to Buyer', n+1,
               ' adding noise Normal(0,(sigma x', np.round(max(0, p-b)), '))^2')
+        print(pred[n].shape)
                 
         # update price weights  
         probs, w = price_update(b, pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'], X, Bmin,Bmax, epsilon, delta, N, w)
