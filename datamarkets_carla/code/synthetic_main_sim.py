@@ -191,7 +191,7 @@ def data_allocation(p, b, Y, noise):
 
 def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
-    reps = 2 
+    reps = 10 
     expected_revenue = np.repeat(0.0, reps)
     sigma = 0.5*Y.std()
 # =============================================================================
@@ -210,7 +210,7 @@ def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
             expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)))
             #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),"\n")
         else:
-            I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
+            I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])/5
             #print('I=',I_,'\n')
             expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)) - I_)
             #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),'\n')

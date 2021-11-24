@@ -20,6 +20,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import SGDRegressor
 import pandas as pd
 from Online_SGD import *
+import random
 
 # ---------------------------------------------------------------------------#
 # ----------------------------- SCRIPT CONTENTS -----------------------------#
@@ -34,7 +35,7 @@ from Online_SGD import *
 # #######################################
 # A. INITIALIZATION 
 # #######################################
-
+random.seed(42)
 # A.1 READ DATA
 dfX = pd.read_csv('../data/X_VAR3.csv')
 dfY = pd.read_csv('../data/Y_VAR3.csv')
@@ -112,7 +113,8 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
               
         # 1st step: market sets price
         if (day == 0) & (n==0): 
-            p = np.random.uniform(Bmin, Bmax) # select a random price
+            #p = np.random.uniform(Bmin, Bmax)
+            p=9# select a random price
         else:
             # NEW - define the price as the mean value of the distribution:
             p = sum(probs*possible_p)
@@ -200,7 +202,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         if b==Bmin:
             r = g*b
         else:
-            r = revenue_posAlloc(p, b, pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'], X, noise, Bmin, epsilon)
+            r = revenue(p, b, pred[n]['Y'],pred[n]['y_own'],pred[n]['y_market'], X, Bmin, epsilon)
         print('6 - Market computes the revenue', r)
         
         # 7th step: divide money by sellers
