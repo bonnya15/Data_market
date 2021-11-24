@@ -165,9 +165,11 @@ def gain(Y,y_own, y_market):
 #     print(y_own)
 # =============================================================================
     y_market=y_market.squeeze()
-    g_own = np.sqrt(np.mean((Y - y_own)**2))
+    g_own = np.sqrt(np.mean((Y.values - y_own)**2))
     g_market = np.sqrt(np.mean((Y.values - y_market)**2))
     g = (g_own-g_market)/(np.max(Y)-np.min(Y)) # gain
+
+
 
     return(max(0,g.mean())*100)    
         
@@ -180,46 +182,55 @@ def data_allocation(p, b, Y, noise):
     # the quality at this buyer gets allocate
     Ynoise = Y + max(0, p-b)*noise
     Ynoise = pd.DataFrame(Ynoise)
-    Y = pd.DataFrame(Y)
+    #Y = pd.DataFrame(Y)
     # the last variable is known by the owner!
-    Ynoise.iloc[:, Y.shape[1]-1] = Y.iloc[:, Y.shape[1]-1]
+    #Ynoise.iloc[:, Y.shape[1]-1] = Y.iloc[:, Y.shape[1]-1]
     return Ynoise
 
 # 5. REVENUE - PAPER'S EQUATION (19)
 
 def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
-    reps = 5 
+    reps = 10
     expected_revenue = np.repeat(0.0, reps)
-    sigma = Y.std()
+    sigma = 0.5*Y.std()
+# =============================================================================
+#     print("sigma within revenue func",sigma,"\n")
+#     print("price within revenue function=",p,"\n","bid=",b,"\n")
+# =============================================================================
     for i in range(reps):  
         np.random.seed(i)
         noise = np.random.normal(0, sigma, Y.shape)
         def f(z):
             YY = data_allocation(p, z, y_market, noise)
             return gain(Y,y_own, YY)
-        Yalloc=data_allocation(p, b, Y, noise)
+        #Yalloc=data_allocation(p, b, Y, noise)
         xaxis = np.arange(Bmin,b+epsilon,0.5) 
         if len(xaxis)==1:
             expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)))
+            #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),"\n")
         else:
-            I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
+            I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])/5
+            #print('I=',I_,'\n')
             expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)) - I_)
+            #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),'\n')
     return expected_revenue.mean()
 
 
 def revenue_posAlloc(p, b, Y,y_own, y_market, X, noise, Bmin, epsilon):
-    print(Y.shape,y_own.shape,y_market.shape,noise.shape)
     # same as revenue but using fixed noise matrix
     def f(z):
-        YY = data_allocation(p, z, Y, noise)
+        YY = data_allocation(p, z, y_market, noise)
         return gain(Y,y_own, YY)
     xaxis = np.arange(Bmin,b+epsilon,0.5) 
     if len(xaxis)==1:
         expected_revenue = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)))
+        #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),'\n')
     else:
         I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
+        #print('I=',I_,'\n')
         expected_revenue = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)) - I_)
+        #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),'\n')
 
     return expected_revenue
 
@@ -232,13 +243,15 @@ def aux_price(c_, w_last, b, Y,y_own, y_market, X, Bmax, delta, Bmin, epsilon):
     
 def price_update(b, Y,y_own, y_market, X, Bmin, Bmax, epsilon, delta, N, w):
     c = np.arange(Bmin, Bmax+epsilon, epsilon)
+    #print("weights before",w,"\n")
     Wn = np.sum(w)
     probs = w/Wn
     res = []
     for j, c_ in enumerate(c):
        res.append(aux_price(c_, w[j], b, Y,y_own, y_market, X, Bmax, delta, Bmin, epsilon))
-    #w = np.array([r.get() for r in res])
+    w = np.array(res)
     w = w.transpose()
+    #print("weights after",w,"\n")
     # print('weights', w/np.sum(w))
     Wn = np.sum(w) # this line was missing
     probs = w/Wn
