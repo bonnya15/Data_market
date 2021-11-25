@@ -46,7 +46,7 @@ set_hours(24*31)
 hours_=744 # number of observations to estimate the gain (used to estimate
 # the value to be paid) - the paper's notation is \Delta
 steps_t = 1 # how much times ahead the temporal window slides
-ndays = 150  # number of times the platform slides the window
+ndays = 10  # number of times the platform slides the window
 
 buyers_ = np.arange(dfY.shape[1]) # number of buyers
 sellers_ = np.arange(dfY.shape[1]) # number of sellers
@@ -114,8 +114,8 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
               
         # 1st step: market sets price
         if (day == 0) & (n==0): 
-            #p = np.random.uniform(Bmin, Bmax)
-            p=6# select a random price
+            p = np.random.uniform(Bmin, Bmax)
+            #p=6# select a random price
         else:
             # NEW - define the price as the mean value of the distribution:
             p = sum(probs*possible_p)
