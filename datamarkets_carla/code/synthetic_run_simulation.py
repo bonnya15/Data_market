@@ -46,7 +46,7 @@ set_hours(24*31)
 hours_=744 # number of observations to estimate the gain (used to estimate
 # the value to be paid) - the paper's notation is \Delta
 steps_t = 1 # how much times ahead the temporal window slides
-ndays = 5  # number of times the platform slides the window
+ndays = 150  # number of times the platform slides the window
 
 buyers_ = np.arange(dfY.shape[1]) # number of buyers
 sellers_ = np.arange(dfY.shape[1]) # number of sellers
@@ -60,7 +60,8 @@ bids = np.repeat(5, N) # each buyer values a marginal improvement of
 # 1% in NRMSE as 5EUR
 possible_p = np.arange(Bmin, Bmax+epsilon, epsilon)  # all possible prices
 w = np.repeat(1.0, len(possible_p))  # initial weights in price (uniform)
-
+lr=0.0005
+damp=1.00
 # A.3 SAVE RELEVANT BUYERS/SELLERS INFO
 buyers = [] # save buyers information
 
@@ -114,7 +115,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         # 1st step: market sets price
         if (day == 0) & (n==0): 
             #p = np.random.uniform(Bmin, Bmax)
-            p=9# select a random price
+            p=6# select a random price
         else:
             # NEW - define the price as the mean value of the distribution:
             p = sum(probs*possible_p)
@@ -134,12 +135,14 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         if day == 0:
             X = buyers[n].X.iloc[0:(window_size+day*steps_t), :] 
             Y = buyers[n].Y[0 :(window_size+day*steps_t)]
+            
         else:
             X = buyers[n].X.iloc[(window_size+day*steps_t): (window_size+day*steps_t+1),:]
             Y = buyers[n].Y[(window_size+day*steps_t): (window_size+day*steps_t+1)]
             X_next = buyers[n].X.iloc[(window_size+(day+1)*steps_t): (window_size+(day+1)*steps_t+1),:]
             Y_next = buyers[n].Y[(window_size+(day+1)*steps_t): (window_size+(day+1)*steps_t+1)]
             Xown_next = X_next.iloc[:,len(X_next.columns)-1].copy()
+        #print(X.columns)
 
         ## Validation Model Building 
         
@@ -157,8 +160,8 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
             wb_o['w'][n] = wb['w'][1:2][1]
             wb_o['b'][n] = wb['b'][1:2][1]
             
-            market = Online_SGD(wb_m['w'][n], wb_m['b'][n], learning_rate=0.01,damp_factor=1.02)
-            own = Online_SGD(wb_o['w'][n], wb_o['b'][n], learning_rate=0.01,damp_factor=1.02)
+            market = Online_SGD(wb_m['w'][n], wb_m['b'][n], learning_rate=lr,damp_factor=damp)
+            own = Online_SGD(wb_o['w'][n], wb_o['b'][n], learning_rate=lr,damp_factor=damp)
             
             y_market = market.predict(X_next)
             y_own = own.predict(Xown_next)
@@ -219,27 +222,27 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         
         if day == 0 :
             
-            model_market = Online_SGD(buyers[n].coef_market['w'][0], buyers[n].coef_market['b'][0], learning_rate=0.01,damp_factor=1.02)
+            model_market = Online_SGD(buyers[n].coef_market['w'][0], buyers[n].coef_market['b'][0], learning_rate=lr,damp_factor=damp)
             buyers[n].coef_market['w'][0] , buyers[n].coef_market['b'][0] = model_market.fit_regression(X[0:(X.shape[0])], Y[0:(X.shape[0])])
             y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
             y_real = buyers[n].Y[(window_size+day*steps_t)]
             g_market =  RMSE(y_real, y_market)
             
         
-            model_own = Online_SGD(buyers[n].coef_own['w'][0], buyers[n].coef_own['b'][0], learning_rate=0.01,damp_factor=1.02)
+            model_own = Online_SGD(buyers[n].coef_own['w'][0], buyers[n].coef_own['b'][0], learning_rate=lr,damp_factor=damp)
             buyers[n].coef_own['w'][0] , buyers[n].coef_own['b'][0] = model_own.fit_regression(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
             y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
             g_own =  RMSE(y_real, y_own)
             
 
         else:
-            model_market = Online_SGD(buyers[n].coef_market['w'][0], buyers[n].coef_market['b'][0], learning_rate=0.01,damp_factor=1.02)
+            model_market = Online_SGD(buyers[n].coef_market['w'][0], buyers[n].coef_market['b'][0], learning_rate=lr,damp_factor=damp)
             buyers[n].coef_market['w'][0] , buyers[n].coef_market['b'][0] = model_market.fit_online(X[0:(X.shape[0])], Y[0:(X.shape[0])])
             y_market = model_market.predict(buyers[n].X.iloc[(window_size+day*steps_t),:].values.reshape((1,-1)))
             y_real = buyers[n].Y[(window_size+day*steps_t)]
             g_market =  RMSE(y_real, y_market)
         
-            model_own = Online_SGD(buyers[n].coef_own['w'][0], buyers[n].coef_own['b'][0], learning_rate=0.01,damp_factor=1.02)
+            model_own = Online_SGD(buyers[n].coef_own['w'][0], buyers[n].coef_own['b'][0], learning_rate=lr,damp_factor=damp)
             buyers[n].coef_own['w'][0] , buyers[n].coef_own['b'][0] = model_own.fit_online(X.iloc[0:(X.shape[0]), (X.shape[1]-1)].values.reshape(-1, 1), Y[0:(X.shape[0])])    
             y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])    
             g_own =  RMSE(y_real, y_own)    
