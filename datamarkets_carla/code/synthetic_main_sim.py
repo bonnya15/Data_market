@@ -27,7 +27,8 @@ from Online_SGD import *
 
 ## Incorporating online SGD
 
-
+lr=0.0005
+damp=1.00
 # 1. INITIALIZATION
 
 def set_hours(hours):
@@ -74,7 +75,7 @@ def model(X, Y): # model function (train and evaluate the corresponding gain)
     model_own = LinearRegression(fit_intercept=True).fit(Xown_train.values, Ytrain.values)
     model_market = LinearRegression(fit_intercept=True).fit(Xtrain.values, Ytrain.values)
     
-    
+    #print(X_own)
     weight_market= model_market.coef_.reshape(1, X.shape[1])
     weight_own= model_own.coef_.reshape(1,1)
     bias_market=model_market.intercept_.reshape(1, 1)
@@ -86,17 +87,17 @@ def model(X, Y): # model function (train and evaluate the corresponding gain)
     y_own = []
     y = []
     
-    y.append(Y[(Y.shape[0]-hours_):(Y.shape[0]-hours_+1)][0][8016])
+    y.append(Ytest[(Ytest.shape[0]-hours_):(Ytest.shape[0]-hours_+1)][0][8016])
     y_market.append(model_market.predict(X[(X.shape[0]-hours_):(X.shape[0]-hours_+1)])[0][0])
     y_own.append(model_own.predict(X_own[(X.shape[0]-hours_):(X.shape[0]-hours_+1)].values.reshape((1,-1)))[0][0])
 
     for i in range(hours_):
         
         
-        model_market_online = Online_SGD(coeff[0:1]['w'][0], coeff[0:1]['b'][0], learning_rate=0.01,damp_factor=1.02)
+        model_market_online = Online_SGD(coeff[0:1]['w'][0], coeff[0:1]['b'][0], learning_rate=lr,damp_factor=damp)
         weight_market, bias_market =  model_market_online.fit_online(Xtest[i:i+1], Ytest[i:i+1])
     
-        model_own_online = Online_SGD(coeff[1:2]['w'][1], coeff[1:2]['b'][1], learning_rate=0.01,damp_factor=1.02)
+        model_own_online = Online_SGD(coeff[1:2]['w'][1], coeff[1:2]['b'][1], learning_rate=lr,damp_factor=damp)
         weight_own , bias_own = model_own_online.fit_online(Xown_test[i:i+1], Ytrain[i:i+1])
         
         coeff={'w':[weight_market,weight_own],'b':[bias_market,bias_own]}
@@ -135,10 +136,10 @@ def model_Online(X,Y, wb_market, wb_own):
 # =============================================================================
 
     # train models
-    model_market_online = Online_SGD(wb_market['w'][0], wb_market['b'][0], learning_rate=0.01,damp_factor=1.02)
+    model_market_online = Online_SGD(wb_market['w'][0], wb_market['b'][0], learning_rate=lr,damp_factor=damp)
     weight_market, bias_market =  model_market_online.fit_online(X, Y)
     
-    model_own_online = Online_SGD(wb_own['w'][0], wb_own['b'][0], learning_rate=0.01,damp_factor=1.02)
+    model_own_online = Online_SGD(wb_own['w'][0], wb_own['b'][0], learning_rate=lr,damp_factor=damp)
     weight_own , bias_own = model_own_online.fit_online(X_own, Y)
     
 
@@ -180,7 +181,7 @@ def gain(Y,y_own, y_market):
 def data_allocation(p, b, Y, noise):
     # Function which receives the current price (p) and bid (b) and decide
     # the quality at this buyer gets allocate
-    Ynoise = Y + max(0, p-b)*noise
+    Ynoise = Y + max(0, p-b)*0.25*noise
     Ynoise = pd.DataFrame(Ynoise)
     #Y = pd.DataFrame(Y)
     # the last variable is known by the owner!
@@ -193,7 +194,7 @@ def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
     reps = 10
     expected_revenue = np.repeat(0.0, reps)
-    sigma = 0.5*Y.std()
+    sigma = 0.25*Y.std()
 # =============================================================================
 #     print("sigma within revenue func",sigma,"\n")
 #     print("price within revenue function=",p,"\n","bid=",b,"\n")
@@ -210,10 +211,11 @@ def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
             expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)))
             #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),"\n")
         else:
-            I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])/5
+            I_ = sum([f(v) for v in xaxis])*(xaxis[1]-xaxis[0])
             #print('I=',I_,'\n')
             expected_revenue[i] = max(0, b*gain(Y,y_own,data_allocation(p, b, y_market, noise)) - I_)
             #print("gain within function",gain(Y,y_own,data_allocation(p, b, y_market, noise)),'\n')
+    #print("price=",p," bid=", b," revenue func expected revenue mean",expected_revenue.mean())
     return expected_revenue.mean()
 
 
