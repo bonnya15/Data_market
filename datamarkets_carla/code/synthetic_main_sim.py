@@ -36,7 +36,7 @@ def set_hours(hours):
     hours_ = hours # \Delta parameter -- see paper
 
 class Buyer: # class to save relevant data per buyer
-    def update_parameters(self, selfX, X, Y, b, max_paym, coef_market, coef_own):  # Save weights and Biases 
+    def update_parameters(self, selfX, X, Y, b, max_paym, coef_market, coef_own,seller):  # Save weights and Biases 
         self.selfX = selfX # own data
         self.Y = Y # data to predict
         self.b = b # bids
@@ -44,6 +44,7 @@ class Buyer: # class to save relevant data per buyer
         self.X = X # all available data
         self.coef_market = coef_market #saving the latest coefficients of the model for the market
         self.coef_own = coef_own       #saving the latest coefficients of the model for own data 
+        self.seller = seller
         
 
 # 2. RMSE
@@ -259,39 +260,84 @@ def price_update(b, Y,y_own, y_market, X, Bmin, Bmax, epsilon, delta, N, w):
     probs = w/Wn
     return probs, w
 
+def gain_paydiv(Y,y_inc, y_exc):
+
+    y_inc=y_inc.squeeze()
+    g_exc = np.sqrt(np.mean((Y.values - y_exc)**2))
+    g_inc = np.sqrt(np.mean((Y.values - y_inc)**2))
+    g = (g_inc-g_exc) # gain
+
+    return(max(0,g.mean())*100)   
+
 # 7. PAYMENT DIVISION - PAPER'S ALGORITHM 1
 
 def aux_shap_aprox(m, M, K, X, Y):
     phi_ = 0
+    new = pd.DataFrame(columns = ['exclude_w','exclude_b','include_w','include_b'])
+    new['exclude_w'] = [[np.zeros(2,)] for i in range(K)]
+    new['exclude_b'] = [[np.zeros(1,)] for i in range(K)]
+    new['include_w'] = [[np.zeros(2,)] for i in range(K)]
+    new['include_b'] = [[np.zeros(1,)] for i in range(K)]
+
+    
     for k in np.arange(0, K):
         np.random.seed(k)
         sg = np.random.permutation(M)
         i = 1
-        while sg[0] == m:
+        while sg[0] == m:    
             np.random.seed(i)
             sg = np.random.permutation(M)
             i+=1
         pos = sg[np.arange(0, np.where(sg == m)[0][0])]
         XX = X.iloc[:, pos].copy()
-        XX[X.columns[M]] = X[X.columns[M]]  # include own seller data
-        G = model(XX, Y)
+        XX[X.columns[M]] = X[X.columns[M]]  # exclude own seller data
+        coeff,df = model(XX, Y)
+        y_pred = pd.DataFrame(columns=('Y','exclude_seller','include_seller'))
+        y_pred['Y'] = df['Y'].values
+        y_pred['exclude_seller'] = df['y_market'].values
+        
+        new['exclude_w'][k] = coeff['w'][0]
+        new['exclude_b'][k] = coeff['b'][0]
+
+        
         pos = sg[np.arange(0, np.where(sg == m)[0][0]+1)]
         XX = X.iloc[:, pos].copy()
         XX[X.columns[M]] = X[X.columns[M]]  # include own seller data
-        Gplus = model(XX, Y)
-        phi_ += max(0, Gplus-G)
-    return phi_
+        coeff,df = model(XX, Y)
+        y_pred['include_seller'] = df['y_market'].values
+        
+        
+        
+        G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
+        print('G',G)
+        
+        new['include_w'][k] = coeff['w'][0]
+        new['include_b'][k] = coeff['b'][0]
+        
+        phi_ += max(0, G)
+    return(phi_, new)
+
+
+class Sellers: # class to save relevant data per buyer
+    def update_parameters(self, coef_df,gain):  # Save weights and Biases 
+        self.coef_df = coef_df
+        self.gain = gain
 
 
 def shapley_aprox(Y, X, K):
     M = X.shape[1]-1
     phi = np.repeat(0.0, M)
     res = []
+    seller = []
+    for i in range(M):
+        seller.append(Sellers())
     for m in np.arange(0, M):
-       res.append(aux_shap_aprox(m, M, K, X, Y))
-    #phi = np.array([r.get() for r in res])
+        r , df = aux_shap_aprox(m, M, K, X, Y)
+        seller[m].update_parameters(df,r)
+        res.append(r)
+    phi = np.array([r for r in res])
     phi = phi.transpose()
-    return phi/K
+    return(phi/K, seller)
 
 
 def square_rooted(x):
@@ -307,7 +353,7 @@ def cos_similarity(x, y):
 def shapley_robust(Y, X, K, lambd):
     M = X.shape[1]-1
     phi_ = np.repeat(0.0, M)
-    phi = shapley_aprox(Y, X, K)
+    phi,seller_class  = shapley_aprox(Y, X, K)
     for m in np.arange(0, M):
         s = 0
         for k in np.arange(0, M):
@@ -316,4 +362,100 @@ def shapley_robust(Y, X, K, lambd):
         phi_[m] = phi[m]*np.exp(-lambd * s)
     if phi.sum()>0:
         phi = phi_/phi_.sum() 
-    return phi
+    return(phi,seller_class)
+
+
+
+
+
+
+## Profit division algorithm online
+
+def shapley_robust_online(Y, X, K, lambd, seller_list):
+    M = X.shape[1]-1
+    phi_ = np.repeat(0.0, M)
+    phi,seller_class = shapley_aprox_online(Y, X, K, seller_list)
+    for m in np.arange(0, M):
+        s = 0
+        for k in np.arange(0, M):
+            if k != m:
+                s += cos_similarity(X.iloc[:, m], X.iloc[:, k])
+        phi_[m] = phi[m]*np.exp(-lambd * s)
+    if phi.sum()>0:
+        phi = phi_/phi_.sum() 
+    return(phi,seller_class)
+
+def shapley_aprox_online(Y, X, K,seller_list):
+    M = X.shape[1]-1
+    phi = np.repeat(0.0, M)
+    res = []
+    seller = seller_list
+
+    for m in np.arange(0, M):
+        r , df = aux_shap_aprox_online(m, M, K, X, Y,seller[m].coef_df, seller[m].gain, delta = (1/744))
+        seller[m].update_parameters(df,r)
+        res.append(r)
+    phi = np.array([r for r in res])
+    phi = phi.transpose()
+    return(phi/K, seller)
+
+def aux_shap_aprox_online(m, M, K, X, Y,df,past_gain,delta):
+    phi_ = 0
+    ## Coefficient DataFrames
+    wb_exclude = df[['exclude_w','exclude_b']].rename({'exclude_w': 'w', 'exclude_b': 'b'}, axis='columns').copy()
+    wb_include = df[['include_w','include_b']].rename({'include_w': 'w', 'include_b': 'b'}, axis='columns').copy()
+    wb_own = pd.DataFrame()
+    wb_own['w'] = [[np.zeros(1,)]] 
+    wb_own['b'] = [[np.zeros(1,)]]  
+    
+    for k in np.arange(0, K):
+        np.random.seed(k)
+        sg = np.random.permutation(M)
+        i = 1
+        while sg[0] == m:    
+            np.random.seed(i)
+            sg = np.random.permutation(M)
+            i+=1
+        pos = sg[np.arange(0, np.where(sg == m)[0][0])]
+        XX = X.iloc[:, pos].copy()
+        XX[X.columns[M]] = X[X.columns[M]]  # exclude own seller data
+        coeff = model_Online(XX, Y, wb_exclude.loc[k], wb_own.loc[0])
+        
+        ## Online Prediction part
+        market = Online_SGD(wb_exclude['w'][k], wb_exclude['b'][k], learning_rate=lr,damp_factor=damp)
+        y_market = market.predict(XX)
+            
+        y_pred = pd.DataFrame(columns=('Y','exclude_seller','include_seller'))
+        y_pred['Y'] = Y[0]
+        y_pred['exclude_seller'] = y_market
+        
+        
+        df['exclude_w'][k] = coeff['w'][0]
+        df['exclude_b'][k] = coeff['b'][0]
+        
+        
+        pos = sg[np.arange(0, np.where(sg == m)[0][0]+1)]
+        XX = X.iloc[:, pos].copy()
+        XX[X.columns[M]] = X[X.columns[M]]  # include own seller data
+        coeff = model_Online(XX, Y, wb_include.loc[k], wb_own.loc[0])
+        market = Online_SGD(wb_include['w'][k], wb_include['b'][k], learning_rate=lr,damp_factor=damp)
+        y_market = market.predict(XX)
+        
+        y_pred['include_seller'] = y_market
+
+        print('Actual Y', Y, 'Pred_y_excluded', y_pred['exclude_seller'].values, 'Pred_y_included',  y_pred['include_seller'].values)
+        
+        G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
+        print('G',G)
+        new_G = (1-delta)*past_gain + delta*G
+        print('Past_gain',past_gain, "Gain", new_G)
+        
+        df['include_w'][k] = coeff['w'][0]
+        df['include_b'][k] = coeff['b'][0]
+
+        phi_ += max(0, new_G)
+
+    return(phi_, df)
+
+
+

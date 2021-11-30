@@ -65,9 +65,11 @@ damp=1.00
 # A.3 SAVE RELEVANT BUYERS/SELLERS INFO
 buyers = [] # save buyers information
 
+
 for i, k in enumerate(buyers_):
     # this cycle processes the csv file. Objective:  defines for each agent
     # their own variable, and the ones (s)he can buy
+    seller = []
     buyers.append(Buyer())
     Y = dfY.iloc[:, [j for j, c in enumerate(dfY.columns) if j == k]]
     Y = np.array(Y, ndmin=2)
@@ -87,7 +89,7 @@ for i, k in enumerate(buyers_):
     
     coef_market = wb_market
     coef_own = wb_own
-    buyers[i].update_parameters(selfX, X, Y, bids[i],max_paym, coef_market, coef_own)
+    buyers[i].update_parameters(selfX, X, Y, bids[i],max_paym, coef_market, coef_own,seller)
 
 
 wb_m = pd.DataFrame()
@@ -211,12 +213,23 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('6 - Market computes the revenue', r)
         
         # 7th step: divide money by sellers
-# =============================================================================
-#         if r>0:
-#             r_division = shapley_robust(Y, Xalloc, 5, 1)
-#             results[day, 5:(5+M-1), n] = r_division # money division by sellers
-#             del r_division
-# =============================================================================
+        print(X,Y)
+        
+        if r>0:
+            if day == 0:
+                r_division, seller_list = shapley_robust(Y, X, 5, 1)
+                print(r_division)
+                results[day, 5:(5+M-1), n] = r_division # money division by sellers
+                buyers[n].seller = seller_list
+                del r_division
+            else:
+                r_division, seller_list = shapley_robust_online(Y, X, 5, 1, buyers[n].seller)
+                print(r_division)
+                buyers[n].seller = seller_list
+                results[day, 5:(5+M-1), n] = r_division # money division by sellers
+                del r_division
+                
+
             
         # 8th step: compute the effective gain when predicting 1h-ahead
         
@@ -313,3 +326,5 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 # =============================================================================
 # sys.stdout.close()
 # =============================================================================
+
+
