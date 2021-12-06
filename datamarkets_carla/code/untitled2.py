@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Nov 25 15:00:07 2021
+
+@author: ASUS 8I5-8-512-4GTX
+"""
+
+buyer1_gain=[4.013851219592037,4.004028599370417,3.9992423350528634,3.9966919712090334,3.989629571858529,3.992739427121497,3.99314578610619,3.993407817296568,3.9847405810747456]
+buyer1_revenue=[1.1849672695719389,3.2451246492014065,4.349221797667682,4.326232024283284, 4.159332500343103,4.369505515095926,4.059021035805193,4.236526550283701,4.217826878894363]
+
+buyer2_gain=[0.4922434031863426,0.4867270667808363,0.49421683906352465,0.4992730748259489,0.4992590254880135, 0.4943672664552705,0.48805185784891153,0.4851102091745134,0.4868018540235869]
+buyer2_revenue=[1.468171978285819,1.265198679332277,0.9704469169192323,0.8255427988105775,1.049460814934509,0.838716405292077,0.9077403539704901,0.9439326426745562,0.8497717160148028]
+
+buyer3_gain=[1.051489492493983,1.0461748995660438,1.0492291199599302,1.0760937775927613,1.0955754261884811,1.1096455102805998,1.1148358113964472,1.1259718647326329,1.1415249964989382]
+buyer3_revenue=[2.6033564033716536,2.7201722973105444,2.6270499592426635,2.666907217721969,2.6436685669285493,2.6874453115839683,2.8614668169471575,2.7461582517279544,2.8107373730581986]
+
+
+import matplotlib.pyplot as plt
+plt.plot(buyer1_gain)
+plt.xlabel('Hours')
+plt.ylabel('Gain ')
+plt.savefig('buyer1gain.png')
+plt.show()
+
+import matplotlib.pyplot as plt
+plt.plot(buyer1_revenue)
+plt.xlabel('Hours')
+plt.ylabel('Revenue')
+plt.savefig('buyer1rev.png')
+plt.show()
+
+import matplotlib.pyplot as plt
+plt.plot(buyer2_gain)
+plt.xlabel('Hours')
+plt.ylabel('Gain ')
+plt.savefig('buyer2gain.png')
+plt.show()
+
+import matplotlib.pyplot as plt
+plt.plot(buyer2_revenue)
+plt.xlabel('Hours')
+plt.ylabel('Revenue')
+plt.savefig('buyer2rev.png')
+plt.show()
+
+import matplotlib.pyplot as plt
+plt.plot(buyer3_gain)
+plt.xlabel('Hours')
+plt.ylabel('Gain ')
+plt.savefig('buyer3gain.png')
+plt.show()
+
+import matplotlib.pyplot as plt
+plt.plot(buyer3_revenue)
+plt.xlabel('Hours')
+plt.ylabel('Revenue')
+plt.savefig('buyer3rev.png')
+plt.show()
