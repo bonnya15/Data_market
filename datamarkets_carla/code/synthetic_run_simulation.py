@@ -213,7 +213,6 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         print('6 - Market computes the revenue', r)
         
         # 7th step: divide money by sellers
-        print(X,Y)
         
         if r>0:
             if day == 0:
@@ -273,19 +272,18 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         #y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])
         #g_own =  RMSE(y_real, y_own)
 
-# =============================================================================
-#         rev_purchased_forecast = b*((g_own-g_market)/(np.max(Y)-np.min(Y)))*100
-#         print('Real gain', n+1, 'had a gain funtion of', rev_purchased_forecast)
-#         
-#         # save relevant info
-#         results[day, 0, n] = p # price fixed by the market for buyer n
-#         results[day, 1, n] = b # bid offered by buyer n
-#         results[day, 2, n] = g*b # gain estimated by the market for buyer n
-#         results[day, 3, n] = r # the value paid by the buyer n
-#         results[day, 4, n] = rev_purchased_forecast # gain forecasting 1h-ahead
-#         del X, Y, p, r, noise, g
-#     np.save('market_results.npy', results[0:day,:,:])
-# =============================================================================
+        rev_purchased_forecast = b*((g_own-g_market)/(np.max(Y)-np.min(Y)))*100
+        print('Real gain', n+1, 'had a gain funtion of', rev_purchased_forecast)
+        
+        # save relevant info
+        results[day, 0, n] = p # price fixed by the market for buyer n
+        results[day, 1, n] = b # bid offered by buyer n
+        results[day, 2, n] = g*b # gain estimated by the market for buyer n
+        results[day, 3, n] = r # the value paid by the buyer n
+        results[day, 4, n] = rev_purchased_forecast # gain forecasting 1h-ahead
+        del X, Y, p, r, noise, g
+    np.save('market_results.npy', results[0:day,:,:])
+
 
 
 # save results in 'results' folder

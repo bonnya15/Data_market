@@ -309,7 +309,7 @@ def aux_shap_aprox(m, M, K, X, Y):
         
         
         G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
-        print('G',G)
+
         
         new['include_w'][k] = coeff['w'][0]
         new['include_b'][k] = coeff['b'][0]
@@ -333,7 +333,7 @@ def shapley_aprox(Y, X, K):
         seller.append(Sellers())
     for m in np.arange(0, M):
         r , df = aux_shap_aprox(m, M, K, X, Y)
-        seller[m].update_parameters(df,r)
+        seller[m].update_parameters(df,r/k)
         res.append(r)
     phi = np.array([r for r in res])
     phi = phi.transpose()
@@ -442,13 +442,10 @@ def aux_shap_aprox_online(m, M, K, X, Y,df,past_gain,delta):
         y_market = market.predict(XX)
         
         y_pred['include_seller'] = y_market
-
-        print('Actual Y', Y, 'Pred_y_excluded', y_pred['exclude_seller'].values, 'Pred_y_included',  y_pred['include_seller'].values)
-        
         G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
-        print('G',G)
+       
         new_G = (1-delta)*past_gain + delta*G
-        print('Past_gain',past_gain, "Gain", new_G)
+
         
         df['include_w'][k] = coeff['w'][0]
         df['include_b'][k] = coeff['b'][0]
