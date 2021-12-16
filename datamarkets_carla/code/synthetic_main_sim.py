@@ -1,3 +1,5 @@
+
+
 # 2020 
 # Carla Goncalves <carla.s.goncalves@inesctec.pt>
 # License GPL(>=3)
@@ -27,7 +29,7 @@ from Online_SGD import *
 
 ## Incorporating online SGD
 
-lr=0.0005
+lr=0.00001
 damp=1.00
 # 1. INITIALIZATION
 

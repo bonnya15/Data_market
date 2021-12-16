@@ -1,4 +1,3 @@
-# 2020 
 # Carla Goncalves <carla.s.goncalves@inesctec.pt>
 # License GPL(>=3)
 # This script implements the main functions to simulate the data market proposed
