@@ -195,7 +195,7 @@ def revenue(p, b, Y,y_own, y_market, X, Bmin, epsilon):
     # Function that computes the final value to be paid by buyer
     reps = 10
     expected_revenue = np.repeat(0.0, reps)
-    sigma = 0.25*Y.std()
+    sigma = 0.4*Y.std()
 # =============================================================================
 #     print("sigma within revenue func",sigma,"\n")
 #     print("price within revenue function=",p,"\n","bid=",b,"\n")
@@ -309,12 +309,12 @@ def aux_shap_aprox(m, M, K, X, Y):
         
         
         G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
-
         
         new['include_w'][k] = coeff['w'][0]
         new['include_b'][k] = coeff['b'][0]
         
         phi_ += max(0, G)
+    print(phi_/K)
     return(phi_, new)
 
 
@@ -333,7 +333,7 @@ def shapley_aprox(Y, X, K):
         seller.append(Sellers())
     for m in np.arange(0, M):
         r , df = aux_shap_aprox(m, M, K, X, Y)
-        seller[m].update_parameters(df,r/k)
+        seller[m].update_parameters(df,r/K)
         res.append(r)
     phi = np.array([r for r in res])
     phi = phi.transpose()
@@ -397,7 +397,7 @@ def shapley_aprox_online(Y, X, K,seller_list):
         res.append(r)
     phi = np.array([r for r in res])
     phi = phi.transpose()
-    return(phi/K, seller)
+    return(phi, seller)
 
 def aux_shap_aprox_online(m, M, K, X, Y,df,past_gain,delta):
     phi_ = 0
@@ -444,15 +444,18 @@ def aux_shap_aprox_online(m, M, K, X, Y,df,past_gain,delta):
         y_pred['include_seller'] = y_market
         G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
        
-        new_G = (1-delta)*past_gain + delta*G
+        
 
         
         df['include_w'][k] = coeff['w'][0]
         df['include_b'][k] = coeff['b'][0]
 
-        phi_ += max(0, new_G)
-
-    return(phi_, df)
+        phi_ += max(0, G)
+    
+    
+    new_G = (1-delta)*past_gain + delta*(phi_/K)
+    print(phi_/K, new_G)
+    return(new_G, df)
 
 
 

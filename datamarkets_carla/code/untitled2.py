@@ -1,58 +1,120 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu Nov 25 15:00:07 2021
+Created on Mon Dec 13 15:18:08 2021
 
-@author: ASUS 8I5-8-512-4GTX
+@author: shiuli Subhra Ghosh
 """
 
-buyer1_gain=[4.013851219592037,4.004028599370417,3.9992423350528634,3.9966919712090334,3.989629571858529,3.992739427121497,3.99314578610619,3.993407817296568,3.9847405810747456]
-buyer1_revenue=[1.1849672695719389,3.2451246492014065,4.349221797667682,4.326232024283284, 4.159332500343103,4.369505515095926,4.059021035805193,4.236526550283701,4.217826878894363]
-
-buyer2_gain=[0.4922434031863426,0.4867270667808363,0.49421683906352465,0.4992730748259489,0.4992590254880135, 0.4943672664552705,0.48805185784891153,0.4851102091745134,0.4868018540235869]
-buyer2_revenue=[1.468171978285819,1.265198679332277,0.9704469169192323,0.8255427988105775,1.049460814934509,0.838716405292077,0.9077403539704901,0.9439326426745562,0.8497717160148028]
-
-buyer3_gain=[1.051489492493983,1.0461748995660438,1.0492291199599302,1.0760937775927613,1.0955754261884811,1.1096455102805998,1.1148358113964472,1.1259718647326329,1.1415249964989382]
-buyer3_revenue=[2.6033564033716536,2.7201722973105444,2.6270499592426635,2.666907217721969,2.6436685669285493,2.6874453115839683,2.8614668169471575,2.7461582517279544,2.8107373730581986]
-
-
+from math import sqrt
+from sklearn import preprocessing
+import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-plt.plot(buyer1_gain)
-plt.xlabel('Hours')
-plt.ylabel('Gain ')
-plt.savefig('buyer1gain.png')
-plt.show()
-
+from sklearn.linear_model import SGDRegressor
+from sklearn import preprocessing
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
-plt.plot(buyer1_revenue)
-plt.xlabel('Hours')
-plt.ylabel('Revenue')
-plt.savefig('buyer1rev.png')
-plt.show()
-
+from sklearn.metrics import mean_squared_error
+from sklearn.datasets import make_regression
+import pandas as pd
 import matplotlib.pyplot as plt
-plt.plot(buyer2_gain)
-plt.xlabel('Hours')
-plt.ylabel('Gain ')
-plt.savefig('buyer2gain.png')
-plt.show()
+import seaborn as sns
+import numpy as np
+from sklearn.model_selection import train_test_split
+from lightgbm import LGBMRegressor
+#from sklearn.linear_model import QuantileRegressor
 
-import matplotlib.pyplot as plt
-plt.plot(buyer2_revenue)
-plt.xlabel('Hours')
-plt.ylabel('Revenue')
-plt.savefig('buyer2rev.png')
-plt.show()
 
-import matplotlib.pyplot as plt
-plt.plot(buyer3_gain)
-plt.xlabel('Hours')
-plt.ylabel('Gain ')
-plt.savefig('buyer3gain.png')
-plt.show()
+dfX = pd.read_csv('X_VAR3.csv')
+dfY = pd.read_csv('Y_VAR3.csv')
+Data_X=dfX.iloc[:,1]
+Data_Y=dfY.iloc[:,1]
+X_train, X_test, y_train, y_test = train_test_split(Data_X, Data_Y, test_size=0.05, random_state=0)
+X_train=np.array(X_train).reshape(-1,1)
+X_test=np.array(X_test).reshape(-1,1)
 
+
+
+preds2=pd.DataFrame()
+preds2['X_test']=list(X_test)
+preds2['y_test']=list(y_test)
+for tau in [0.1,0.3,0.5,0.7,0.9]:
+    clf = LGBMRegressor(objective='quantile', alpha=tau)
+    clf.fit(X_train, y_train)
+    preds2[str(tau)] = list(clf.predict(X_test))
+    
+    
+
+plt.figure(figsize=(15, 8))
+plt.scatter(X_test,y_test,label="X_test")
+plt.scatter(X_test,preds2['0.1'],label='0.1')
+plt.scatter(X_test,preds2['0.3'],label='0.3')
+plt.scatter(X_test,preds2['0.5'],label='0.5')
+plt.scatter(X_test,preds2['0.7'],label='0.7')
+plt.scatter(X_test,preds2['0.9'],label='0.9')
+plt.legend()
+plt.show()    
+
+
+
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
-plt.plot(buyer3_revenue)
-plt.xlabel('Hours')
-plt.ylabel('Revenue')
-plt.savefig('buyer3rev.png')
-plt.show()
+
+
+data=pd.DataFrame()
+data=pd.concat([X_train,y_train.rename("y")],axis=1)
+
+data['x']=Data_X
+data['y']=Data_Y
+
+mod = smf.quantreg('y ~ x',data)
+res = mod.fit(q=0.5)
+for i in res.params.index:
+    print(res.params[i])
+    
+    
+quantiles = np.arange(0.05, 0.96, 0.1)
+
+
+def fit_model(q):
+    res = mod.fit(q=q)
+    return [q, res.params["Intercept"], res.params["x"]] + res.conf_int().loc[
+        "x"
+    ].tolist()
+
+
+models = [fit_model(x) for x in quantiles]
+models = pd.DataFrame(models, columns=["q", "a", "b", "lb", "ub"])
+
+ols = smf.ols("y ~ x", data).fit()
+ols_ci = ols.conf_int().loc["x"].tolist()
+ols = dict(
+    a=ols.params["Intercept"], b=ols.params["x"], lb=ols_ci[0], ub=ols_ci[1]
+)
+
+print(models)
+print(ols)  
+
+x = np.arange(data.x.min(), data.x.max(),0.01)
+get_y = lambda a, b: a + b * x
+
+fig, ax = plt.subplots(figsize=(8, 6))
+
+for i in range(models.shape[0]):
+    y = get_y(models.a[i], models.b[i])
+    ax.plot(x, y, linestyle="dotted", color="red")
+
+y = get_y(ols["a"], ols["b"])
+
+ax.plot(x, y, color="red", label="OLS")
+ax.scatter(data.x, data.y, alpha=0.2)
+ax.set_xlim((-8, 8))
+ax.set_ylim((-8, 8))
+legend = ax.legend()
+ax.set_xlabel("x", fontsize=16)
+ax.set_ylabel("y", fontsize=16)  

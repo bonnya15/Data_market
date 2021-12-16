@@ -325,4 +325,34 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 # sys.stdout.close()
 # =============================================================================
 
+ra = list(range(0,10))
 
+## For Buyer 0
+
+import matplotlib.pyplot as plt
+
+plt.plot( ra, results[:,5,0] ,'r', label = 'O2')
+plt.plot( ra, results[:,6,0] ,'b', label = 'O3')
+plt.title('For Buyer 1 ')
+plt.xlabel('Day')
+plt.ylabel('Payment Division')
+plt.legend()
+plt.savefig(r'C:\Users\shiuli Subhra Ghosh\Dropbox\CMI\CMI Academics\3rd Semester\5. Industry Project\datamarkets_carla\code\Results\Payment Division Results\paydiv_1.jpeg')
+
+## For Buyer 1
+plt.plot( ra, results[:,5,1] ,'r', label = 'O1')
+plt.plot( ra, results[:,6,1] ,'b', label = 'O3')
+plt.title('For Buyer 2 ')
+plt.xlabel('Day')
+plt.ylabel('Payment Division')
+plt.legend()
+plt.savefig(r'C:\Users\shiuli Subhra Ghosh\Dropbox\CMI\CMI Academics\3rd Semester\5. Industry Project\datamarkets_carla\code\Results\Payment Division Results\paydiv_2.jpeg')
+
+## For Buyer 2
+plt.plot( ra, results[:,5,2] ,'r', label = 'O1')
+plt.plot( ra, results[:,6,2] ,'b', label = 'O2')
+plt.title('For Buyer 3')
+plt.xlabel('Day')
+plt.ylabel('Payment Division')
+plt.legend()
+plt.savefig(r'C:\Users\shiuli Subhra Ghosh\Dropbox\CMI\CMI Academics\3rd Semester\5. Industry Project\datamarkets_carla\code\Results\Payment Division Results\paydiv_3.jpeg')
