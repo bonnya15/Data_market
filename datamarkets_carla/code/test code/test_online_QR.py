@@ -66,6 +66,7 @@ import statsmodels.formula.api as smf
 import matplotlib.pyplot as plt
 
 
+X_train = pd.DataFrame(X_train, columns = ['x'])
 data=pd.DataFrame()
 data=pd.concat([X_train,y_train.rename("y")],axis=1)
 
@@ -118,3 +119,11 @@ ax.set_ylim((-8, 8))
 legend = ax.legend()
 ax.set_xlabel("x", fontsize=16)
 ax.set_ylabel("y", fontsize=16)  
+
+
+wb = pd.DataFrame()    
+wb['w'] = [np.zeros(dfX.shape[1],)]
+wb['b'] = [np.zeros(1,)] 
+
+dfY = dfY.rename(columns = {"O1":"y1","O2":"y2","O3":"y3" })
+data = pd.concat([dfX,dfY["y1"]], axis= 1)
