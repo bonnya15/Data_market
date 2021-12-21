@@ -52,7 +52,10 @@ class Online_QuantileSGD:
 
         return self.w, np.array(self.b)
 
-    def predict(self, X):
+    def predict(self, data):
+        Y = data.iloc[:,-1]
+        X = data.iloc[:,0:-1]
+
         # self.w = np.loadtxt(self.w_file).reshape(1, X.shape[1])  # Reading weights and bias
         # self.b = np.loadtxt(self.b_file).reshape(1, 1)
         m = np.dot(X, self.w.T) + self.b
