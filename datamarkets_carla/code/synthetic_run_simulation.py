@@ -45,7 +45,7 @@ set_hours(24*31)
 hours_=744 # number of observations to estimate the gain (used to estimate
 # the value to be paid) - the paper's notation is \Delta
 steps_t = 1 # how much times ahead the temporal window slides
-ndays = 10  # number of times the platform slides the window
+ndays = 500  # number of times the platform slides the window
 
 buyers_ = np.arange(dfY.shape[1]) # number of buyers
 sellers_ = np.arange(dfY.shape[1]) # number of sellers
@@ -271,7 +271,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
         #y_own = model_own.predict(buyers[n].X.iloc[(window_size+day*steps_t):(window_size+day*steps_t+1),(X.shape[1]-1):])
         #g_own =  RMSE(y_real, y_own)
 
-        rev_purchased_forecast = b*((g_own-g_market)/(np.max(Y)-np.min(Y)))*100
+        rev_purchased_forecast = b*((g_own-g_market)/(np.max(buyers[n].Y)-np.min(buyers[n].Y)))*100
         print('Real gain', n+1, 'had a gain funtion of', rev_purchased_forecast)
         
         # save relevant info
@@ -324,7 +324,7 @@ for day in np.arange(0,ndays): # cycle to simulate the sliding window
 # sys.stdout.close()
 # =============================================================================
 
-ra = list(range(0,10))
+ra = list(range(0,100))
 
 ## For Buyer 0
 
