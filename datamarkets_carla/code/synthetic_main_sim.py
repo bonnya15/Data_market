@@ -184,7 +184,7 @@ def gain(Y,y_own, y_market):
 def data_allocation(p, b, Y, noise):
     # Function which receives the current price (p) and bid (b) and decide
     # the quality at this buyer gets allocate
-    Ynoise = Y + max(0, p-b)*0.25*noise
+    Ynoise = Y + max(0, p-b)*noise
     Ynoise = pd.DataFrame(Ynoise)
     #Y = pd.DataFrame(Y)
     # the last variable is known by the owner!
@@ -447,7 +447,6 @@ def aux_shap_aprox_online(m, M, K, X, Y,df,past_gain,delta):
         G = gain_paydiv(y_pred['Y'], y_pred['include_seller'],y_pred['exclude_seller'])
        
         
-
         
         df['include_w'][k] = coeff['w'][0]
         df['include_b'][k] = coeff['b'][0]
